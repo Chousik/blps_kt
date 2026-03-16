@@ -1,6 +1,6 @@
 package ru.chousik.blps_kt.model
 
-enum class ChatSender {
+enum class UserRole {
     GUEST,
     HOST,
     PLATFORM

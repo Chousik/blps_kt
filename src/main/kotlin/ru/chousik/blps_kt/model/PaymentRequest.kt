@@ -4,7 +4,10 @@ import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
+import jakarta.persistence.FetchType
 import jakarta.persistence.Id
+import jakarta.persistence.JoinColumn
+import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import jakarta.validation.constraints.FutureOrPresent
 import jakarta.validation.constraints.NotNull
@@ -24,6 +27,11 @@ class PaymentRequest {
     @field:NotNull
     @Column(name = "extra_service_request_id", nullable = false, unique = true)
     lateinit var extraServiceRequestId: UUID
+
+    @field:NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "initiated_by_user_id", nullable = false)
+    lateinit var initiatedBy: User
 
     @field:Size(max = 128)
     @Column(name = "provider_payment_id", unique = true, length = 128)

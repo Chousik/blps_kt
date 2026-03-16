@@ -2,8 +2,6 @@ package ru.chousik.blps_kt.model
 
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
-import jakarta.persistence.EnumType
-import jakarta.persistence.Enumerated
 import jakarta.persistence.FetchType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
@@ -28,10 +26,9 @@ class ChatMessage {
     @JoinColumn(name = "chat_id", nullable = false)
     lateinit var chat: Chat
 
-    @field:NotNull
-    @Enumerated(EnumType.STRING)
-    @Column(name = "sender", nullable = false, length = 32)
-    lateinit var sender: ChatSender
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sender_user_id")
+    var senderUser: User? = null
 
     @field:NotBlank
     @field:Size(max = 2000)

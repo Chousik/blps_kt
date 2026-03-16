@@ -1,11 +1,17 @@
 # Codex activity log
 
-- Added `spring-boot-starter-validation` dependency to `build.gradle.kts` so Bean Validation annotations are available inside the entities.
+- Added `spring-boot-starter-validation` dependency to `build.gradle.kts` so Bean Validation annotations are available inside the entities, `spring-boot-starter-web` to provide MVC/HTTP infrastructure (e.g., `HttpStatus`), and `springdoc-openapi-starter-webmvc-ui` to expose Swagger UI/OpenAPI docs automatically.
+- Added a `docker-compose.yml` with a ready-to-run Postgres 16 instance (default db/user/password `blps`, mapped port 5432, health checks, and persistent volume) so the app has a consistent local database container.
+- Introduced profile-based datasource config: default `h2` profile (in-memory H2 running in PostgreSQL mode) for local development and a `postgres` profile (environment-driven) for Docker/real DB deployments; default profile is now `h2` to avoid connection errors when Postgres isn't running.
 - Implemented Kotlin JPA entities under `ru.chousik.blps_kt.model` (per last relocation request from the temporary `org.hipeoplea.airbnb.model`/`ru.chousik.bplt_kt.model` packages):
-  - `ChatMessage` with sender enum, message length guard, and `@PastOrPresent` timestamp validation.
+  - `ChatMessage` with optional sender user reference, message length guard, and `@PastOrPresent` timestamp validation.
   - `ExtraServiceRequest` with strict text limits, monetary validation (`@Positive`, `@Digits`), ISO currency pattern, and temporal guards.
   - `PaymentRequest` with optional provider id, URL validation for payment link, and lifecycle timestamp rules (`@PastOrPresent`, `@FutureOrPresent`).
   - `Receipt` with unique receipt number, currency/amount constraints, and issued-at guard.
-- Added enums (`ChatSender`, `ExtraServiceRequestStatus`, `PaymentRequestStatus`) to match the domain vocabulary used by the new Kotlin entities.
-- Introduced a dedicated `Chat` entity (now focused solely on chat metadata/timestamps) and connected `ChatMessage`/`ExtraServiceRequest` to it via `@ManyToOne` associations so conversation context is shared without relying on `ServiceRequest` linkage.
+- Added enums (`ExtraServiceRequestStatus`, `PaymentRequestStatus`) to match the domain vocabulary used by the new Kotlin entities and defined `UserRole` with GUEST/HOST/PLATFORM options for authorization logic.
+- Introduced a dedicated `Chat` entity (now focused solely on chat metadata/timestamps) and connected `ChatMessage`/`ExtraServiceRequest` to it via `@ManyToOne` associations so conversation context is shared without relying on `ServiceRequest` linkage; the chat table also enforces unique guest/host pairs.
 - Removed the `ServiceRequest` entity entirely per latest instruction; chat context now stands alone with direct UUID identifiers where necessary.
+- Added a `User` entity plus `UserRole` enum (GUEST/HOST/PLATFORM) to capture platform principals with username/email uniqueness, personal names, roles, and timestamp auditing fields guarded by Bean Validation.
+- Updated all remaining entities to integrate `User`: chats reference explicit guest/host users, chat messages optionally link to the sending user, extra service requests leverage only the chat context (requestedBy inferred as the host), payment requests store the initiating user, and receipts capture which user issued them.
+- Implemented chat REST endpoints (`POST /chats`, `GET /chats/{id}`, `GET /chats?userId=...`) with service/repository layers enforcing business rules (role checks, guest/host uniqueness, access control, pagination via offset-based pageable).
+- Added full CRUD for extra service requests via the `/extra-services` resource (create/list filtered by `chatId` query param; `GET/PUT/DELETE /extra-services/{id}` for single items) with DTOs, repository, service, and controller ensuring host-only creation, participant/platform visibility, pagination, and limited field updates.

@@ -1,0 +1,60 @@
+убери в услугах requestedBy, оставь только чат
+ExtraServiceRequest (доп. услуги)
+1️⃣ Эндпоинты CRUD
+Метод	URL	Назначение	Ограничения / Валидация
+POST	/extra-services?chatId={chatId}	Создать новый запрос на доп. услугу	✅ Только участник host для текущего чата может создать.
+✅ Поля title и description обязательны.
+✅ amount > 0, currency — ISO 4217 (^[A-Z]{3}$).
+GET	/extra-services?chatId={chatId}&limit={limit}&offset={offset}	Получить все услуги чата	✅ Только участники чата могут просматривать.
+✅ Поддержка пагинации (limit, offset).
+GET	/extra-services/{serviceId}	Получить конкретную услугу	✅ Только участники чата или PLATFORM.
+PUT	/extra-services/{serviceId}	Обновить услугу	✅ Только создатель услуги (host) или PLATFORM.
+✅ Можно менять status, title, description, amount, currency.
+❌ Нельзя менять chat.
+DELETE	/extra-services/{serviceId}	Удалить услугу	✅ Только создатель услуги (host) или PLATFORM.
+❌ Нельзя удалить чужую услугу.
+2️⃣ DTOs для ExtraServiceRequest
+Создание услуги
+data class ExtraServiceRequestCreateDTO(
+    val title: String,
+    val description: String,
+    val amount: BigDecimal,
+    val currency: String // ISO 4217, например "USD"
+)
+
+title — не пустое, ≤255 символов
+
+description — не пустое, ≤2000 символов
+
+amount — положительное число, максимум 10 цифр + 2 знака после запятой
+
+currency — строго 3 заглавные буквы
+
+Обновление услуги
+data class ExtraServiceRequestUpdateDTO(
+    val status: ExtraServiceRequestStatus?, // Можно менять
+    val title: String?,                      // Опционально
+    val description: String?,                // Опционально
+    val amount: BigDecimal?,                 // Опционально
+    val currency: String?                    // Опционально
+)
+
+Только поля, которые переданы, будут обновлены
+
+Нельзя изменить chat
+
+Ответ при получении
+data class ExtraServiceRequestResponseDTO(
+    val id: UUID,
+    val chatId: UUID,
+    val requestedByUserId: UUID,
+    val status: ExtraServiceRequestStatus,
+    val title: String,
+    val description: String,
+    val amount: BigDecimal,
+    val currency: String,
+    val createdAt: OffsetDateTime,
+    val updatedAt: OffsetDateTime
+)
+
+Используется для GET /extra-services?chatId=... и GET /extra-services/{serviceId}

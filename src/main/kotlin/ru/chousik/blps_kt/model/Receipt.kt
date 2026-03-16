@@ -2,7 +2,10 @@ package ru.chousik.blps_kt.model
 
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.FetchType
 import jakarta.persistence.Id
+import jakarta.persistence.JoinColumn
+import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import jakarta.validation.constraints.Digits
 import jakarta.validation.constraints.NotBlank
@@ -41,6 +44,11 @@ class Receipt {
     @field:Pattern(regexp = "^[A-Z]{3}$")
     @Column(name = "currency", nullable = false, length = 3)
     lateinit var currency: String
+
+    @field:NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "issued_by_user_id", nullable = false)
+    lateinit var issuedBy: User
 
     @field:NotNull
     @field:PastOrPresent
