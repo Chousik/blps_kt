@@ -1,0 +1,11 @@
+# Codex activity log
+
+- Added `spring-boot-starter-validation` dependency to `build.gradle.kts` so Bean Validation annotations are available inside the entities.
+- Implemented Kotlin JPA entities under `ru.chousik.blps_kt.model` (per last relocation request from the temporary `org.hipeoplea.airbnb.model`/`ru.chousik.bplt_kt.model` packages):
+  - `ChatMessage` with sender enum, message length guard, and `@PastOrPresent` timestamp validation.
+  - `ExtraServiceRequest` with strict text limits, monetary validation (`@Positive`, `@Digits`), ISO currency pattern, and temporal guards.
+  - `PaymentRequest` with optional provider id, URL validation for payment link, and lifecycle timestamp rules (`@PastOrPresent`, `@FutureOrPresent`).
+  - `Receipt` with unique receipt number, currency/amount constraints, and issued-at guard.
+- Added enums (`ChatSender`, `ExtraServiceRequestStatus`, `PaymentRequestStatus`) to match the domain vocabulary used by the new Kotlin entities.
+- Introduced a dedicated `Chat` entity (now focused solely on chat metadata/timestamps) and connected `ChatMessage`/`ExtraServiceRequest` to it via `@ManyToOne` associations so conversation context is shared without relying on `ServiceRequest` linkage.
+- Removed the `ServiceRequest` entity entirely per latest instruction; chat context now stands alone with direct UUID identifiers where necessary.
