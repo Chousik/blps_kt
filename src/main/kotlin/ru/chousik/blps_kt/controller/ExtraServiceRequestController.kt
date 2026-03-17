@@ -16,6 +16,9 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
+import ru.chousik.blps_kt.api.payment.ExtraServiceDecisionRequest
+import ru.chousik.blps_kt.api.payment.ExtraServiceDecisionResponse
+import ru.chousik.blps_kt.api.payment.PaymentRequestView
 import ru.chousik.blps_kt.api.extraservice.ExtraServiceRequestCreateDTO
 import ru.chousik.blps_kt.api.extraservice.ExtraServiceRequestResponseDTO
 import ru.chousik.blps_kt.api.extraservice.ExtraServiceRequestUpdateDTO
@@ -60,6 +63,13 @@ class ExtraServiceRequestController(
     ): ExtraServiceRequestResponseDTO =
         extraServiceRequestService.getExtraService(serviceId, requesterUserId)
 
+    @GetMapping("/extra-services/{serviceId}/payment")
+    fun getExtraServicePayment(
+        @PathVariable serviceId: UUID,
+        @RequestParam("requesterUserId") requesterUserId: UUID
+    ): PaymentRequestView =
+        extraServiceRequestService.getExtraServicePayment(serviceId, requesterUserId)
+
     @PutMapping("/extra-services/{serviceId}")
     fun updateExtraService(
         @PathVariable serviceId: UUID,
@@ -67,6 +77,14 @@ class ExtraServiceRequestController(
         @Valid @RequestBody dto: ExtraServiceRequestUpdateDTO
     ): ExtraServiceRequestResponseDTO =
         extraServiceRequestService.updateExtraService(serviceId, requesterUserId, dto)
+
+    @PostMapping("/extra-services/{serviceId}/decision")
+    fun decideExtraService(
+        @PathVariable serviceId: UUID,
+        @RequestParam("requesterUserId") requesterUserId: UUID,
+        @Valid @RequestBody request: ExtraServiceDecisionRequest
+    ): ExtraServiceDecisionResponse =
+        extraServiceRequestService.decideExtraService(serviceId, requesterUserId, request)
 
     @DeleteMapping("/extra-services/{serviceId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
