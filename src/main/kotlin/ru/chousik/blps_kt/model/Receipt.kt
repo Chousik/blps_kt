@@ -14,6 +14,8 @@ import jakarta.validation.constraints.PastOrPresent
 import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.Positive
 import jakarta.validation.constraints.Size
+import org.hibernate.annotations.Fetch
+import org.hibernate.annotations.FetchMode
 import java.math.BigDecimal
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -46,7 +48,8 @@ class Receipt {
     lateinit var currency: String
 
     @field:NotNull
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(optional = false)
+    @Fetch(FetchMode.JOIN)
     @JoinColumn(name = "issued_by_user_id", nullable = false)
     lateinit var issuedBy: User
 

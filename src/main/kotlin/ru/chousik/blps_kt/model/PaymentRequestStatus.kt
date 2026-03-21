@@ -4,6 +4,5 @@ enum class PaymentRequestStatus {
     WAITING_PAYMENT,
     PENDING,
     PAID,
-    FAILED,
-    REJECTED
+    FAILED
 }

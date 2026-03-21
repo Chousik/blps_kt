@@ -8,9 +8,6 @@ import jakarta.validation.constraints.Positive
 import jakarta.validation.constraints.Size
 import java.math.BigDecimal
 
-/**
- * DTO for creating an extra service request.
- */
 data class ExtraServiceRequestCreateDTO(
     @field:NotBlank
     @field:Size(max = 255)

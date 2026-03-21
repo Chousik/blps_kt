@@ -4,7 +4,6 @@ import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
-import jakarta.persistence.FetchType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
@@ -19,6 +18,8 @@ import jakarta.validation.constraints.Size
 import java.math.BigDecimal
 import java.time.OffsetDateTime
 import java.util.UUID
+import org.hibernate.annotations.Fetch
+import org.hibernate.annotations.FetchMode
 
 @Entity
 @Table(name = "extra_service_requests")
@@ -28,7 +29,8 @@ class ExtraServiceRequest {
     lateinit var id: UUID
 
     @field:NotNull
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(optional = false)
+    @Fetch(FetchMode.JOIN)
     @JoinColumn(name = "chat_id", nullable = false)
     lateinit var chat: Chat
 

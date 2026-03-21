@@ -6,9 +6,6 @@ import java.util.UUID
 import ru.chousik.blps_kt.model.ExtraServiceRequest
 import ru.chousik.blps_kt.model.ExtraServiceRequestStatus
 
-/**
- * DTO returned when fetching extra service requests.
- */
 data class ExtraServiceRequestResponseDTO(
     val id: UUID,
     val chatId: UUID,

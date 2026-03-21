@@ -11,6 +11,8 @@ import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.PastOrPresent
+import org.hibernate.annotations.Fetch
+import org.hibernate.annotations.FetchMode
 import java.time.OffsetDateTime
 import java.util.UUID
 
@@ -25,12 +27,14 @@ class Chat {
     lateinit var id: UUID
 
     @field:NotNull
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(optional = false)
+    @Fetch(FetchMode.JOIN)
     @JoinColumn(name = "guest_user_id", nullable = false)
     lateinit var guest: User
 
     @field:NotNull
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(optional = false)
+    @Fetch(FetchMode.JOIN)
     @JoinColumn(name = "host_user_id", nullable = false)
     lateinit var host: User
 

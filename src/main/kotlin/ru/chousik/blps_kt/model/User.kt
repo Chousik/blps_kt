@@ -48,12 +48,10 @@ class User {
     lateinit var role: UserRole
 
     @field:NotNull
-    @field:PastOrPresent
     @Column(name = "created_at", nullable = false)
     lateinit var createdAt: OffsetDateTime
 
     @field:NotNull
-    @field:PastOrPresent
     @Column(name = "updated_at", nullable = false)
     lateinit var updatedAt: OffsetDateTime
 }
