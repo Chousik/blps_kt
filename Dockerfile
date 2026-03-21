@@ -4,10 +4,6 @@ COPY gradle gradle
 COPY gradlew .
 COPY settings.gradle.kts build.gradle.kts ./
 COPY src src
-COPY manual-tests manual-tests
-COPY HELP.md HELP.md
-COPY codex.txt codex.txt
-COPY ав.txt ав.txt
 RUN chmod +x gradlew
 RUN ./gradlew bootJar --no-daemon
 
