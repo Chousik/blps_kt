@@ -36,4 +36,8 @@ class ChatMessage {
     @field:PastOrPresent
     @Column(name = "created_at", nullable = false)
     lateinit var createdAt: OffsetDateTime
+
+    @get:Transient
+    val type: ChatMessageType
+        get() = if (senderUser == null) ChatMessageType.PLATFORM else ChatMessageType.USER
 }

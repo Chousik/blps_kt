@@ -31,6 +31,7 @@ import ru.chousik.blps_kt.repository.ChatRepository
 import ru.chousik.blps_kt.repository.ExtraServiceRequestRepository
 import ru.chousik.blps_kt.repository.PaymentRequestRepository
 import ru.chousik.blps_kt.repository.UserRepository
+import ru.chousik.blps_kt.security.CurrentAccountService
 import ru.chousik.blps_kt.service.payment.YooKassaClient
 import ru.chousik.blps_kt.service.payment.YooKassaCreatePaymentResult
 
@@ -42,6 +43,7 @@ class ExtraServiceRequestService(
     private val paymentRequestRepository: PaymentRequestRepository,
     private val chatSystemMessageService: ChatSystemMessageService,
     private val yooKassaClient: YooKassaClient,
+    private val currentAccountService: CurrentAccountService,
     @Qualifier("jtaTransactionTemplate")
     private val transactionTemplate: TransactionTemplate,
     @Qualifier("jtaRequiresNewTransactionTemplate")
@@ -50,9 +52,9 @@ class ExtraServiceRequestService(
 
     fun createExtraService(
         chatId: UUID,
-        requesterId: UUID,
         dto: ExtraServiceRequestCreateDTO
     ): ExtraServiceRequestResponseDTO {
+        val requesterId = currentAccountService.currentAccount().userId
         val createdService = transactionTemplate.execute {
             val chat = loadChat(chatId)
             val requester = loadUser(requesterId)
@@ -86,13 +88,13 @@ class ExtraServiceRequestService(
     @Transactional(readOnly = true)
     fun getExtraServicesForChat(
         chatId: UUID,
-        requesterId: UUID,
         limit: Int,
         offset: Long
     ): Page<ExtraServiceRequestResponseDTO> {
+        val requesterId = currentAccountService.currentAccount().userId
         val chat = loadChat(chatId)
         val requester = loadUser(requesterId)
-        ensureParticipantOrSupport(chat, requester)
+        ensureParticipantOrAdmin(chat, requester)
 
         val pageable = OffsetBasedPageRequest(limit, offset, Sort.by(Sort.Direction.DESC, "createdAt"))
         return extraServiceRequestRepository.findAllByChatId(chatId, pageable)
@@ -100,18 +102,20 @@ class ExtraServiceRequestService(
     }
 
     @Transactional(readOnly = true)
-    fun getExtraService(serviceId: UUID, requesterId: UUID): ExtraServiceRequestResponseDTO {
+    fun getExtraService(serviceId: UUID): ExtraServiceRequestResponseDTO {
+        val requesterId = currentAccountService.currentAccount().userId
         val service = loadExtraService(serviceId)
         val requester = loadUser(requesterId)
-        ensureParticipantOrSupport(service.chat, requester)
+        ensureParticipantOrAdmin(service.chat, requester)
         return ExtraServiceRequestResponseDTO.from(service)
     }
 
     @Transactional(readOnly = true)
-    fun getExtraServicePayment(serviceId: UUID, requesterId: UUID): PaymentRequestView {
+    fun getExtraServicePayment(serviceId: UUID): PaymentRequestView {
+        val requesterId = currentAccountService.currentAccount().userId
         val service = loadExtraService(serviceId)
         val requester = loadUser(requesterId)
-        ensureParticipantOrSupport(service.chat, requester)
+        ensureParticipantOrAdmin(service.chat, requester)
 
         val payment = paymentRequestRepository.findFirstByExtraServiceRequestIdOrderByCreatedAtDesc(service.id)
             ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "payment request not found for extra service")
@@ -121,13 +125,13 @@ class ExtraServiceRequestService(
 
     fun updateExtraService(
         serviceId: UUID,
-        requesterId: UUID,
         dto: ExtraServiceRequestUpdateDTO
     ): ExtraServiceRequestResponseDTO {
+        val requesterId = currentAccountService.currentAccount().userId
         val updatedService = transactionTemplate.execute {
             val service = loadExtraService(serviceId)
             val requester = loadUser(requesterId)
-            ensureHostOrSupport(service.chat, requester)
+            ensureHostOrAdmin(service.chat, requester)
 
             dto.title?.let { service.title = it.trim() }
             dto.description?.let { service.description = it.trim() }
@@ -148,11 +152,12 @@ class ExtraServiceRequestService(
         return requireNotNull(updatedService) { "extra service update transaction returned null result" }
     }
 
-    fun deleteExtraService(serviceId: UUID, requesterId: UUID) {
+    fun deleteExtraService(serviceId: UUID) {
+        val requesterId = currentAccountService.currentAccount().userId
         transactionTemplate.executeWithoutResult {
             val service = loadExtraService(serviceId)
             val requester = loadUser(requesterId)
-            ensureHostOrSupport(service.chat, requester)
+            ensureHostOrAdmin(service.chat, requester)
 
             val title = service.title
             val chat = service.chat
@@ -169,15 +174,15 @@ class ExtraServiceRequestService(
 
     fun decideExtraService(
         serviceId: UUID,
-        requesterId: UUID,
         request: ExtraServiceDecisionRequest
     ): ExtraServiceDecisionResponse =
         when (request.decision!!) {
-            ExtraServiceDecision.REJECT -> rejectExtraService(serviceId, requesterId)
-            ExtraServiceDecision.ACCEPT -> acceptExtraService(serviceId, requesterId)
+            ExtraServiceDecision.REJECT -> rejectExtraService(serviceId)
+            ExtraServiceDecision.ACCEPT -> acceptExtraService(serviceId)
         }
 
-    private fun rejectExtraService(serviceId: UUID, requesterId: UUID): ExtraServiceDecisionResponse {
+    private fun rejectExtraService(serviceId: UUID): ExtraServiceDecisionResponse {
+        val requesterId = currentAccountService.currentAccount().userId
         val rejectedService = transactionTemplate.execute {
             val service = loadExtraService(serviceId)
             val requester = loadUser(requesterId)
@@ -198,7 +203,8 @@ class ExtraServiceRequestService(
         return requireNotNull(rejectedService) { "extra service reject transaction returned null result" }
     }
 
-    private fun acceptExtraService(serviceId: UUID, requesterId: UUID): ExtraServiceDecisionResponse {
+    private fun acceptExtraService(serviceId: UUID): ExtraServiceDecisionResponse {
+        val requesterId = currentAccountService.currentAccount().userId
         val prepared = requireNotNull(
             transactionTemplate.execute {
                 val service = loadExtraService(serviceId)
@@ -339,19 +345,19 @@ class ExtraServiceRequestService(
         }
     }
 
-    private fun ensureParticipantOrSupport(chat: Chat, requester: User) {
-        val allowed = requester.role == UserRole.PLATFORM ||
+    private fun ensureParticipantOrAdmin(chat: Chat, requester: User) {
+        val allowed = requester.role == UserRole.ADMIN ||
             requester.id == chat.host.id || requester.id == chat.guest.id
         if (!allowed) {
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "access denied to extra services")
         }
     }
 
-    private fun ensureHostOrSupport(chat: Chat, requester: User) {
+    private fun ensureHostOrAdmin(chat: Chat, requester: User) {
         val allowed = (requester.role == UserRole.HOST && requester.id == chat.host.id) ||
-            requester.role == UserRole.PLATFORM
+            requester.role == UserRole.ADMIN
         if (!allowed) {
-            throw ResponseStatusException(HttpStatus.FORBIDDEN, "only host or support can modify extra services")
+            throw ResponseStatusException(HttpStatus.FORBIDDEN, "only host or admin can modify extra services")
         }
     }
 
@@ -402,4 +408,3 @@ class ExtraServiceRequestService(
         val currency: String
     )
 }
-

@@ -1,23 +1,23 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>BLPS Chat Console</title>
+  <title>BLPS Auth + Chat Console</title>
   <style>
     :root {
-      --bg: #eef2f7;
+      --bg: #edf2f8;
       --panel: #ffffff;
-      --border: #d5dce8;
-      --text: #162033;
+      --line: #d7dfeb;
+      --text: #182230;
       --muted: #667085;
-      --primary: #155eef;
+      --primary: #175cd3;
       --secondary: #344054;
-      --accent: #067647;
+      --ok: #067647;
       --danger: #b42318;
       --own: #dbeafe;
       --system: #ecfdf3;
-      --shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+      --accent: #f4f8ff;
     }
 
     * {
@@ -27,11 +27,11 @@
 
     body {
       margin: 0;
-      background:
-        radial-gradient(circle at top left, rgba(21, 94, 239, 0.08), transparent 30%),
-        radial-gradient(circle at bottom right, rgba(6, 118, 71, 0.08), transparent 28%),
-        var(--bg);
       color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(23, 92, 211, 0.10), transparent 32%),
+        radial-gradient(circle at bottom right, rgba(6, 118, 71, 0.10), transparent 26%),
+        var(--bg);
     }
 
     main {
@@ -44,13 +44,19 @@
 
     .panel {
       background: var(--panel);
-      border: 1px solid var(--border);
+      border: 1px solid var(--line);
       border-radius: 18px;
       padding: 16px;
-      box-shadow: var(--shadow);
+      box-shadow: 0 12px 28px rgba(16, 24, 40, 0.08);
     }
 
-    h1, h2 {
+    .panel.highlight {
+      background:
+        linear-gradient(135deg, rgba(23, 92, 211, 0.06), rgba(52, 64, 84, 0.02)),
+        var(--panel);
+    }
+
+    h1, h2, h3 {
       margin: 0 0 10px;
     }
 
@@ -63,6 +69,10 @@
       font-size: 17px;
     }
 
+    h3 {
+      font-size: 15px;
+    }
+
     .intro {
       margin: 0;
       color: var(--muted);
@@ -71,15 +81,50 @@
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
       gap: 12px;
+    }
+
+    .auth-layout {
+      display: grid;
+      grid-template-columns: 1.05fr 1fr;
+      gap: 16px;
+      align-items: start;
     }
 
     .dashboard {
       display: grid;
-      grid-template-columns: 1.2fr 1.4fr 1fr;
+      grid-template-columns: 1.15fr 1.4fr 1fr;
       gap: 16px;
       align-items: start;
+    }
+
+    .auth-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #f8fafc;
+      padding: 10px 12px;
+    }
+
+    .card strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
 
     label {
@@ -92,16 +137,16 @@
     input, textarea, select {
       width: 100%;
       margin-top: 4px;
-      border: 1px solid var(--border);
+      border: 1px solid var(--line);
       border-radius: 10px;
       padding: 9px 11px;
       font-size: 14px;
-      color: var(--text);
       background: #fff;
+      color: var(--text);
     }
 
     textarea {
-      min-height: 110px;
+      min-height: 96px;
       resize: vertical;
     }
 
@@ -126,27 +171,23 @@
       background: var(--secondary);
     }
 
-    button.success {
-      background: var(--accent);
-    }
-
     button.ghost {
-      background: #e9effa;
+      background: #eaf0fb;
       color: #344054;
     }
 
     button:disabled {
-      opacity: 0.6;
+      opacity: 0.55;
       cursor: not-allowed;
     }
 
     .status {
-      font-size: 14px;
       margin: 4px 0 10px;
+      font-size: 14px;
     }
 
     .status.ok {
-      color: var(--accent);
+      color: var(--ok);
     }
 
     .status.err {
@@ -157,26 +198,20 @@
       color: var(--muted);
     }
 
-    .pill-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin: 8px 0 14px;
-    }
-
-    .pill {
-      border-radius: 999px;
-      padding: 6px 10px;
-      background: #f2f4f7;
+    .note {
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--accent);
       color: var(--muted);
-      font-size: 12px;
+      line-height: 1.5;
+      font-size: 13px;
     }
 
     .feed, .log, pre {
-      margin: 0;
-      border: 1px solid var(--border);
+      border: 1px solid var(--line);
       border-radius: 12px;
-      background: #fff;
+      margin: 0;
       overflow: auto;
     }
 
@@ -184,33 +219,34 @@
       min-height: 540px;
       max-height: 680px;
       padding: 12px;
+      background: #fff;
       display: grid;
       gap: 10px;
       align-content: start;
     }
 
-    .chat-message {
+    .msg {
       border-radius: 12px;
-      border: 1px solid var(--border);
-      padding: 10px 12px;
+      border: 1px solid var(--line);
       background: #f8fafc;
+      padding: 10px 12px;
     }
 
-    .chat-message.own {
+    .msg.own {
       background: var(--own);
     }
 
-    .chat-message.system {
+    .msg.system {
       background: var(--system);
     }
 
-    .message-head {
+    .msg-head {
       margin-bottom: 6px;
       font-size: 12px;
       color: var(--muted);
     }
 
-    .message-body {
+    .msg-body {
       white-space: pre-wrap;
       word-break: break-word;
       line-height: 1.45;
@@ -223,6 +259,7 @@
       line-height: 1.45;
       white-space: pre-wrap;
       word-break: break-word;
+      background: #fff;
     }
 
     pre {
@@ -231,6 +268,7 @@
     }
 
     @media (max-width: 1100px) {
+      .auth-layout,
       .dashboard {
         grid-template-columns: 1fr;
       }
@@ -243,21 +281,90 @@
 </head>
 <body>
 <main>
-  <section class="panel">
-    <h1>BLPS Chat Console</h1>
+  <section class="panel highlight">
+    <h1>BLPS Auth + Chat Console</h1>
     <p class="intro">
-      Choose the active user UUID and chat UUID, then open the chat session. The page loads message history over REST,
-      subscribes to the same chat over WebSocket/STOMP, and lets you send new messages from that user.
+      Эта страница открывается без браузерного Basic prompt. Логин сверху выполняет
+      <code>HTTP Basic</code> запрос к <code>/auth/session</code>, сервер поднимает сессию,
+      и дальше REST plus WebSocket работают уже под этим authenticated principal.
     </p>
-    <div class="pill-row">
-      <div class="pill">Same-origin page: no CORS barrier</div>
-      <div class="pill">REST + WebSocket in one screen</div>
-      <div class="pill">Uses requesterUserId from the form</div>
-    </div>
+  </section>
+
+  <section class="auth-layout">
+    <section class="panel">
+      <h2>Авторизация</h2>
+      <div id="authStatus" class="status neutral">Сессия не установлена.</div>
+      <div class="grid">
+        <label>
+          Username
+          <input id="loginUsername" value="guest-alex" autocomplete="username">
+        </label>
+        <label>
+          Password
+          <input id="loginPassword" type="password" value="guestpass" autocomplete="current-password">
+        </label>
+      </div>
+      <div class="actions">
+        <button id="btnLogin">Login</button>
+        <button class="secondary" id="btnCheckSession">Check Session</button>
+        <button class="ghost" id="btnLogout">Logout</button>
+      </div>
+      <div class="note">
+        Текущие тестовые аккаунты сохранены, но их пароли теперь лежат в XML в виде bcrypt-хешей.
+        Логин на этой странице все равно использует исходные raw-пароли.
+      </div>
+      <div class="auth-grid">
+        <div class="card"><strong>Username</strong><span id="meUsername">-</span></div>
+        <div class="card"><strong>User ID</strong><span id="meUserId">-</span></div>
+        <div class="card"><strong>Role</strong><span id="meRole">-</span></div>
+        <div class="card"><strong>Authorities</strong><span id="meAuthorities">-</span></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Регистрация</h2>
+      <div id="registerStatus" class="status neutral">Можно создать новый аккаунт GUEST или HOST.</div>
+      <div class="grid">
+        <label>
+          Username
+          <input id="registerUsername" placeholder="new-user" autocomplete="username">
+        </label>
+        <label>
+          Email
+          <input id="registerEmail" type="email" placeholder="new-user@example.com" autocomplete="email">
+        </label>
+        <label>
+          Password
+          <input id="registerPassword" type="password" placeholder="minimum 8 chars" autocomplete="new-password">
+        </label>
+        <label>
+          Role
+          <select id="registerRole">
+            <option value="GUEST">GUEST / user</option>
+            <option value="HOST">HOST</option>
+          </select>
+        </label>
+      </div>
+      <div class="actions">
+        <button id="btnRegister">Register</button>
+      </div>
+      <div class="note">
+        При регистрации создаются сразу две сущности: доменный пользователь в БД и
+        XML-учетка для Spring Security. Роль <code>ADMIN</code> через self-registration запрещена.
+      </div>
+    </section>
+  </section>
+
+  <section class="panel">
+    <h2>Operations</h2>
     <div class="grid">
       <label>
         Base URL
         <input id="baseUrl">
+      </label>
+      <label>
+        Inspect User ID
+        <input id="inspectUserId" placeholder="optional, mainly for ADMIN">
       </label>
       <label>
         Guest User ID
@@ -266,14 +373,6 @@
       <label>
         Host User ID
         <input id="hostId" value="33333333-3333-4333-8333-333333333333">
-      </label>
-      <label>
-        Platform User ID
-        <input id="platformId" value="55555555-5555-4555-8555-555555555555">
-      </label>
-      <label>
-        Active User UUID
-        <input id="requesterId" value="33333333-3333-4333-8333-333333333333">
       </label>
       <label>
         Chat ID
@@ -285,7 +384,7 @@
       </label>
       <label>
         Message Text
-        <input id="messageText" value="hello from same-origin chat console">
+        <input id="messageText" value="hello from auth console">
       </label>
       <label>
         Extra Service Title
@@ -308,14 +407,15 @@
       </label>
     </div>
     <div class="actions">
-      <button id="btnCreateChat">POST /chats</button>
-      <button id="btnGetChats">GET /chats</button>
-      <button id="btnCreateMsg">POST /chats/{id}/messages</button>
-      <button id="btnGetMsgs">GET /chats/{id}/messages</button>
-      <button id="btnCreateExtra">POST /extra-services</button>
-      <button id="btnGetExtra">GET /extra-services</button>
-      <button id="btnDecideExtra">POST /extra-services/{id}/decision</button>
-      <button id="btnGetPayment">GET /extra-services/{id}/payment</button>
+      <button class="requires-auth" id="btnRefreshMe">GET /me</button>
+      <button class="requires-auth" id="btnCreateChat">POST /chats</button>
+      <button class="requires-auth" id="btnGetChats">GET /chats</button>
+      <button class="requires-auth" id="btnCreateMsg">POST /chats/{id}/messages</button>
+      <button class="requires-auth" id="btnGetMsgs">GET /chats/{id}/messages</button>
+      <button class="requires-auth" id="btnCreateExtra">POST /extra-services</button>
+      <button class="requires-auth" id="btnGetExtra">GET /extra-services</button>
+      <button class="requires-auth" id="btnDecideExtra">POST /extra-services/{id}/decision</button>
+      <button class="requires-auth" id="btnGetPayment">GET /extra-services/{id}/payment</button>
       <button class="ghost" id="btnClearResponse">Clear Response</button>
     </div>
   </section>
@@ -325,18 +425,18 @@
       <h2>Chat Session</h2>
       <div id="chatStatus" class="status neutral">WebSocket: disconnected</div>
       <div class="actions">
-        <button class="success" id="btnOpenChat">Open Chat</button>
-        <button class="secondary" id="btnLoadHistory">Load History</button>
+        <button class="requires-auth" id="btnOpenChat">Open Chat</button>
+        <button class="secondary requires-auth" id="btnLoadHistory">Load History</button>
         <button id="btnSendWs" disabled>Send via WS</button>
         <button class="ghost" id="btnDisconnectWs" disabled>Disconnect</button>
         <button class="ghost" id="btnClearFeed">Clear Feed</button>
       </div>
       <label>
         Notes
-        <textarea readonly>The page uses Active User UUID as requesterUserId for both REST and WebSocket chat actions. Open Chat will connect to /ws, subscribe to /topic/chats/{chatId}, then load message history from REST.</textarea>
+        <textarea readonly>Login uses HTTP Basic only for /auth/session. After that the browser keeps a normal server session, so /me, REST calls and WebSocket handshake reuse the same authenticated principal without requesterUserId.</textarea>
       </label>
       <h2>Response</h2>
-      <div id="status" class="status neutral">No request yet.</div>
+      <div id="status" class="status neutral">Ready.</div>
       <pre id="output"></pre>
     </section>
 
@@ -357,10 +457,9 @@
 
   const ui = {
     baseUrl: byId("baseUrl"),
+    inspectUserId: byId("inspectUserId"),
     guestId: byId("guestId"),
     hostId: byId("hostId"),
-    platformId: byId("platformId"),
-    requesterId: byId("requesterId"),
     chatId: byId("chatId"),
     serviceId: byId("serviceId"),
     messageText: byId("messageText"),
@@ -373,14 +472,28 @@
     chatStatus: byId("chatStatus"),
     messages: byId("messages"),
     wsLog: byId("wsLog"),
+    authStatus: byId("authStatus"),
+    registerStatus: byId("registerStatus"),
+    meUsername: byId("meUsername"),
+    meUserId: byId("meUserId"),
+    meRole: byId("meRole"),
+    meAuthorities: byId("meAuthorities"),
+    loginUsername: byId("loginUsername"),
+    loginPassword: byId("loginPassword"),
+    registerUsername: byId("registerUsername"),
+    registerEmail: byId("registerEmail"),
+    registerPassword: byId("registerPassword"),
+    registerRole: byId("registerRole"),
+    btnLogout: byId("btnLogout"),
     btnSendWs: byId("btnSendWs"),
-    btnDisconnectWs: byId("btnDisconnectWs")
+    btnDisconnectWs: byId("btnDisconnectWs"),
+    requiresAuth: Array.from(document.querySelectorAll(".requires-auth"))
   };
 
+  let currentUser = null;
   let socket = null;
   let wsConnected = false;
   let wsSubscribed = false;
-  let subscriptionId = "sub-0";
 
   ui.baseUrl.value = window.location.origin;
 
@@ -405,6 +518,16 @@
     ui.chatStatus.textContent = text;
   }
 
+  function setAuthStatus(text, ok = null) {
+    ui.authStatus.className = ok === null ? "status neutral" : ok ? "status ok" : "status err";
+    ui.authStatus.textContent = text;
+  }
+
+  function setRegisterStatus(text, ok = null) {
+    ui.registerStatus.className = ok === null ? "status neutral" : ok ? "status ok" : "status err";
+    ui.registerStatus.textContent = text;
+  }
+
   function logWs(text, isError = false) {
     const line = document.createElement("div");
     line.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
@@ -421,23 +544,19 @@
 
   function renderMessage(payload) {
     const item = document.createElement("div");
-    const activeUserId = ui.requesterId.value.trim();
-    const isSystem = !payload.senderUserId;
-    const isOwn = payload.senderUserId && payload.senderUserId === activeUserId;
-
-    item.className = "chat-message";
-    if (isSystem) {
+    item.className = "msg";
+    if (payload.type === "PLATFORM") {
       item.classList.add("system");
-    } else if (isOwn) {
+    } else if (currentUser && payload.senderUserId === currentUser.userId) {
       item.classList.add("own");
     }
 
     const head = document.createElement("div");
-    head.className = "message-head";
-    head.textContent = `${payload.senderUsername || "system"} (${payload.senderUserId || "n/a"}) • ${payload.createdAt || ""}`;
+    head.className = "msg-head";
+    head.textContent = `${payload.type} • ${payload.senderUsername || "system"} (${payload.senderUserId || "n/a"}) • ${payload.createdAt || ""}`;
 
     const body = document.createElement("div");
-    body.className = "message-body";
+    body.className = "msg-body";
     body.textContent = payload.message || "";
 
     item.appendChild(head);
@@ -459,13 +578,64 @@
     return url.toString();
   }
 
-  async function send(path, method, body) {
-    const url = normalizedBaseUrl() + path;
-    const headers = body ? { "Content-Type": "application/json" } : {};
-    const response = await fetch(url, {
+  function requireAuthenticated() {
+    if (!currentUser) {
+      throw new Error("Login first.");
+    }
+  }
+
+  function updateAuthDependentControls() {
+    const enabled = !!currentUser;
+    ui.requiresAuth.forEach((button) => {
+      button.disabled = !enabled;
+    });
+    ui.btnLogout.disabled = !enabled;
+    updateWsButtons();
+  }
+
+  function setCurrentUser(user) {
+    currentUser = user;
+    ui.meUsername.textContent = user.username;
+    ui.meUserId.textContent = user.userId;
+    ui.meRole.textContent = user.role;
+    ui.meAuthorities.textContent = Array.isArray(user.authorities) ? user.authorities.join(", ") : "-";
+    setAuthStatus(`Authenticated as ${user.username}`, true);
+    updateAuthDependentControls();
+  }
+
+  function clearCurrentUser() {
+    currentUser = null;
+    ui.meUsername.textContent = "-";
+    ui.meUserId.textContent = "-";
+    ui.meRole.textContent = "-";
+    ui.meAuthorities.textContent = "-";
+    setAuthStatus("Session is not authenticated.", null);
+    updateAuthDependentControls();
+  }
+
+  function showResponse(method, path, response) {
+    const payload = {
+      request: { method, url: normalizedBaseUrl() + path },
+      response
+    };
+    setStatus(`${method} ${path} -> ${response.status}`, response.ok);
+    ui.output.textContent = pretty(payload);
+  }
+
+  async function request(path, options = {}) {
+    const method = options.method || "GET";
+    const headers = { ...(options.headers || {}) };
+    let body = options.body;
+    if (body && typeof body !== "string") {
+      headers["Content-Type"] = "application/json";
+      body = JSON.stringify(body);
+    }
+
+    const response = await fetch(normalizedBaseUrl() + path, {
       method,
       headers,
-      body: body ? JSON.stringify(body) : undefined
+      body,
+      credentials: "include"
     });
 
     const text = await response.text();
@@ -476,26 +646,113 @@
       parsed = text;
     }
 
-    const payload = {
-      request: { method, url, body: body || null },
-      response: {
-        status: response.status,
-        ok: response.ok,
-        body: parsed
-      }
+    return {
+      status: response.status,
+      ok: response.ok,
+      body: parsed
     };
-
-    setStatus(`${method} ${path} -> ${response.status}`, response.ok);
-    ui.output.textContent = pretty(payload);
-    return payload.response;
   }
 
-  function requireRequesterId() {
-    const value = ui.requesterId.value.trim();
-    if (!value) {
-      throw new Error("Active User UUID is required");
+  async function send(path, method, body) {
+    requireAuthenticated();
+    const response = await request(path, { method, body });
+    showResponse(method, path, response);
+
+    if (response.status === 401) {
+      clearCurrentUser();
+      throw new Error("Session expired. Login again.");
     }
-    return value;
+
+    return response;
+  }
+
+  function toBasicHeader(username, password) {
+    const bytes = new TextEncoder().encode(`${username}:${password}`);
+    let binary = "";
+    bytes.forEach((byte) => {
+      binary += String.fromCharCode(byte);
+    });
+    return `Basic ${btoa(binary)}`;
+  }
+
+  async function refreshCurrentUser(showFailure = false) {
+    const response = await request("/me", { method: "GET" });
+    if (response.ok && response.body) {
+      setCurrentUser(response.body);
+      showResponse("GET", "/me", response);
+      return response.body;
+    }
+
+    clearCurrentUser();
+    if (showFailure) {
+      showResponse("GET", "/me", response);
+      setAuthStatus("Authenticated session not found.", false);
+    }
+    return null;
+  }
+
+  async function login() {
+    const username = ui.loginUsername.value.trim();
+    const password = ui.loginPassword.value;
+    if (!username || !password) {
+      throw new Error("Username and password are required.");
+    }
+
+    const response = await request("/auth/session", {
+      method: "POST",
+      headers: {
+        Authorization: toBasicHeader(username, password)
+      }
+    });
+
+    showResponse("POST", "/auth/session", response);
+
+    if (!response.ok || !response.body) {
+      clearCurrentUser();
+      setAuthStatus("Login failed.", false);
+      throw new Error(typeof response.body === "string" ? response.body : `Login failed with status ${response.status}`);
+    }
+
+    ui.loginPassword.value = "";
+    setCurrentUser(response.body);
+  }
+
+  async function logout() {
+    disconnectSocket();
+    const response = await request("/auth/logout", { method: "POST" });
+    showResponse("POST", "/auth/logout", response);
+    clearCurrentUser();
+    setAuthStatus("Logged out.", null);
+  }
+
+  async function registerAccount() {
+    const username = ui.registerUsername.value.trim();
+    const email = ui.registerEmail.value.trim();
+    const password = ui.registerPassword.value;
+    const role = ui.registerRole.value;
+
+    if (!username || !email || !password || !role) {
+      throw new Error("Fill username, email, password and role.");
+    }
+
+    const response = await request("/auth/register", {
+      method: "POST",
+      body: { username, email, password, role }
+    });
+
+    showResponse("POST", "/auth/register", response);
+
+    if (!response.ok || !response.body) {
+      setRegisterStatus("Registration failed.", false);
+      throw new Error(typeof response.body === "string" ? response.body : `Registration failed with status ${response.status}`);
+    }
+
+    setRegisterStatus(`Account ${response.body.username} created. You can log in now.`, true);
+    ui.loginUsername.value = username;
+    ui.loginPassword.value = password;
+    ui.registerUsername.value = "";
+    ui.registerEmail.value = "";
+    ui.registerPassword.value = "";
   }
 
   function requireChatId() {
@@ -515,7 +772,7 @@
   }
 
   function updateWsButtons() {
-    ui.btnSendWs.disabled = !(wsConnected && wsSubscribed);
+    ui.btnSendWs.disabled = !(currentUser && wsConnected && wsSubscribed);
     ui.btnDisconnectWs.disabled = !socket;
   }
 
@@ -561,20 +818,16 @@
 
   async function loadHistory() {
     const chatId = requireChatId();
-    const requesterId = requireRequesterId();
-    const result = await send(
-      `/chats/${encodeURIComponent(chatId)}/messages?requesterUserId=${encodeURIComponent(requesterId)}&limit=100&offset=0`,
-      "GET"
-    );
-    if (result.ok && result.body && Array.isArray(result.body.items)) {
+    const response = await send(`/chats/${encodeURIComponent(chatId)}/messages?limit=100&offset=0`, "GET");
+    if (response.ok && response.body && Array.isArray(response.body.items)) {
       clearFeed();
-      result.body.items.forEach(renderMessage);
+      response.body.items.forEach(renderMessage);
     }
   }
 
   async function openChatSession() {
+    requireAuthenticated();
     const chatId = requireChatId();
-    const requesterId = requireRequesterId();
     const url = websocketUrl();
 
     if (socket) {
@@ -606,21 +859,19 @@
       if (socket !== activeSocket) {
         return;
       }
+
       const frames = parseFrames(event.data);
       for (const frame of frames) {
         logWs(`RECV ${frame.command}`);
         if (frame.command === "CONNECTED") {
           wsConnected = true;
-          subscriptionId = `sub-${Date.now()}`;
           activeSocket.send(buildFrame("SUBSCRIBE", {
-            id: subscriptionId,
-            destination: `/topic/chats/${chatId}`,
-            requesterUserId: requesterId
+            id: `sub-${Date.now()}`,
+            destination: `/topic/chats/${chatId}`
           }));
           wsSubscribed = true;
           updateWsButtons();
           setChatStatus(`WebSocket: subscribed to chat ${chatId}`, true);
-          logWs(`SUBSCRIBE /topic/chats/${chatId}`);
           await loadHistory();
         } else if (frame.command === "MESSAGE") {
           try {
@@ -657,12 +908,12 @@
   }
 
   function sendMessageViaWs() {
+    requireAuthenticated();
     if (!socket || !wsConnected || !wsSubscribed) {
       throw new Error("Open chat session first");
     }
 
     const chatId = requireChatId();
-    const requesterId = requireRequesterId();
     const text = ui.messageText.value.trim();
     if (!text) {
       throw new Error("Message Text is empty");
@@ -670,8 +921,7 @@
 
     socket.send(buildFrame("SEND", {
       destination: `/app/chats/${chatId}/messages`,
-      "content-type": "application/json",
-      requesterUserId: requesterId
+      "content-type": "application/json"
     }, JSON.stringify({ message: text })));
     logWs(`SEND /app/chats/${chatId}/messages`);
     ui.messageText.value = "";
@@ -686,65 +936,67 @@
     }
   }
 
+  byId("btnLogin").addEventListener("click", () => run(login));
+  byId("btnCheckSession").addEventListener("click", () => run(() => refreshCurrentUser(true)));
+  byId("btnLogout").addEventListener("click", () => run(logout));
+  byId("btnRegister").addEventListener("click", () => run(registerAccount));
+
+  byId("btnRefreshMe").addEventListener("click", () => run(() => refreshCurrentUser(true)));
+
   byId("btnCreateChat").addEventListener("click", () => run(async () => {
     const body = {
       guestUserId: ui.guestId.value.trim(),
-      hostUserId: ui.hostId.value.trim(),
-      initiatorUserId: requireRequesterId()
+      hostUserId: ui.hostId.value.trim()
     };
-    const result = await send("/chats", "POST", body);
-    if (result.ok && result.body && result.body.id) {
-      ui.chatId.value = result.body.id;
+    const response = await send("/chats", "POST", body);
+    if (response.ok && response.body && response.body.id) {
+      ui.chatId.value = response.body.id;
     }
   }));
 
   byId("btnGetChats").addEventListener("click", () => run(async () => {
-    const requesterId = requireRequesterId();
-    await send(`/chats?userId=${encodeURIComponent(requesterId)}&requesterUserId=${encodeURIComponent(requesterId)}&limit=20&offset=0`, "GET");
+    const inspectUserId = ui.inspectUserId.value.trim();
+    const query = inspectUserId ? `?userId=${encodeURIComponent(inspectUserId)}&limit=20&offset=0` : "?limit=20&offset=0";
+    await send(`/chats${query}`, "GET");
   }));
 
   byId("btnCreateMsg").addEventListener("click", () => run(async () => {
     const chatId = requireChatId();
-    const requesterId = requireRequesterId();
-    const body = { message: ui.messageText.value.trim() };
-    await send(`/chats/${encodeURIComponent(chatId)}/messages?requesterUserId=${encodeURIComponent(requesterId)}`, "POST", body);
+    await send(`/chats/${encodeURIComponent(chatId)}/messages`, "POST", {
+      message: ui.messageText.value.trim()
+    });
   }));
 
   byId("btnGetMsgs").addEventListener("click", () => run(loadHistory));
 
   byId("btnCreateExtra").addEventListener("click", () => run(async () => {
     const chatId = requireChatId();
-    const requesterId = requireRequesterId();
-    const body = {
+    const response = await send(`/extra-services?chatId=${encodeURIComponent(chatId)}`, "POST", {
       title: ui.extraTitle.value.trim(),
       description: "Manual smoke-test request",
       amount: ui.extraAmount.value.trim(),
       currency: ui.extraCurrency.value.trim()
-    };
-    const result = await send(`/extra-services?chatId=${encodeURIComponent(chatId)}&requesterUserId=${encodeURIComponent(requesterId)}`, "POST", body);
-    if (result.ok && result.body && result.body.id) {
-      ui.serviceId.value = result.body.id;
+    });
+    if (response.ok && response.body && response.body.id) {
+      ui.serviceId.value = response.body.id;
     }
   }));
 
   byId("btnGetExtra").addEventListener("click", () => run(async () => {
     const chatId = requireChatId();
-    const requesterId = requireRequesterId();
-    await send(`/extra-services?chatId=${encodeURIComponent(chatId)}&requesterUserId=${encodeURIComponent(requesterId)}&limit=20&offset=0`, "GET");
+    await send(`/extra-services?chatId=${encodeURIComponent(chatId)}&limit=20&offset=0`, "GET");
   }));
 
   byId("btnDecideExtra").addEventListener("click", () => run(async () => {
     const serviceId = requireServiceId();
-    const requesterId = requireRequesterId();
-    await send(`/extra-services/${encodeURIComponent(serviceId)}/decision?requesterUserId=${encodeURIComponent(requesterId)}`, "POST", {
+    await send(`/extra-services/${encodeURIComponent(serviceId)}/decision`, "POST", {
       decision: ui.decision.value
     });
   }));
 
   byId("btnGetPayment").addEventListener("click", () => run(async () => {
     const serviceId = requireServiceId();
-    const requesterId = requireRequesterId();
-    await send(`/extra-services/${encodeURIComponent(serviceId)}/payment?requesterUserId=${encodeURIComponent(requesterId)}`, "GET");
+    await send(`/extra-services/${encodeURIComponent(serviceId)}/payment`, "GET");
   }));
 
   byId("btnOpenChat").addEventListener("click", () => run(openChatSession));
@@ -759,8 +1011,10 @@
     setStatus("Response cleared", null);
   });
 
+  clearCurrentUser();
+  setRegisterStatus("Можно создать новый аккаунт GUEST или HOST.", null);
   updateWsButtons();
-  setStatus("Ready", null);
+  run(() => refreshCurrentUser(false));
 </script>
 </body>
 </html>

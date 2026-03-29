@@ -8,8 +8,5 @@ data class CreateChatRequest(
     val guestUserId: UUID?,
 
     @field:NotNull
-    val hostUserId: UUID?,
-
-    @field:NotNull
-    val initiatorUserId: UUID?
+    val hostUserId: UUID?
 )

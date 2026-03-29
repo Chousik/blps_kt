@@ -17,21 +17,24 @@ import ru.chousik.blps_kt.model.UserRole
 import ru.chousik.blps_kt.pagination.OffsetBasedPageRequest
 import ru.chousik.blps_kt.repository.ChatRepository
 import ru.chousik.blps_kt.repository.UserRepository
+import ru.chousik.blps_kt.security.CurrentAccountService
 
 @Service
 class ChatService(
     private val chatRepository: ChatRepository,
     private val userRepository: UserRepository,
     private val chatSystemMessageService: ChatSystemMessageService,
+    private val currentAccountService: CurrentAccountService,
     @Qualifier("jtaTransactionTemplate")
     private val transactionTemplate: TransactionTemplate
 ) {
 
     fun createChat(request: CreateChatRequest): Chat {
+        val requesterId = currentAccountService.currentAccount().userId
         val createdChat = transactionTemplate.execute {
             val guest = loadUser(request.guestUserId!!)
             val host = loadUser(request.hostUserId!!)
-            val initiator = loadUser(request.initiatorUserId!!)
+            val initiator = loadUser(requesterId)
 
             if (guest.id == host.id) {
                 throw ResponseStatusException(HttpStatus.BAD_REQUEST, "guest and host must be different users")
@@ -41,7 +44,7 @@ class ChatService(
             requireRole(host, UserRole.HOST, "host must have HOST role")
 
             if (!canInitiateChat(initiator, guest, host)) {
-                throw ResponseStatusException(HttpStatus.FORBIDDEN, "initiator must be guest, host, or platform user")
+                throw ResponseStatusException(HttpStatus.FORBIDDEN, "initiator must be guest, host, or admin user")
             }
 
             if (chatRepository.existsByGuestIdAndHostId(guest.id, host.id)) {
@@ -66,7 +69,8 @@ class ChatService(
         return requireNotNull(createdChat) { "chat creation transaction returned null result" }
     }
 
-    fun getChatForUser(chatId: UUID, requesterId: UUID): Chat {
+    fun getChatForUser(chatId: UUID): Chat {
+        val requesterId = currentAccountService.currentAccount().userId
         val chat = chatRepository.findById(chatId)
             .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "chat not found") }
         val requester = loadUser(requesterId)
@@ -79,16 +83,17 @@ class ChatService(
     }
 
     @Transactional(readOnly = true)
-    fun getChatsForUser(userId: UUID, requesterId: UUID, limit: Int, offset: Long): Page<Chat> {
-        val user = loadUser(userId)
+    fun getChatsForUser(userId: UUID?, limit: Int, offset: Long): Page<Chat> {
+        val requesterId = currentAccountService.currentAccount().userId
         val requester = loadUser(requesterId)
+        val targetUser = loadUser(userId ?: requesterId)
 
-        if (requester.role != UserRole.PLATFORM && requester.id != user.id) {
-            throw ResponseStatusException(HttpStatus.FORBIDDEN, "only the user or platform can view chats")
+        if (requester.role != UserRole.ADMIN && requester.id != targetUser.id) {
+            throw ResponseStatusException(HttpStatus.FORBIDDEN, "only the user or admin can view chats")
         }
 
         val pageable = OffsetBasedPageRequest(limit, offset, Sort.by(Sort.Direction.DESC, "createdAt"))
-        return chatRepository.findAllByGuestIdOrHostId(user.id, user.id, pageable)
+        return chatRepository.findAllByGuestIdOrHostId(targetUser.id, targetUser.id, pageable)
     }
 
     private fun loadUser(userId: UUID): User =
@@ -105,7 +110,7 @@ class ChatService(
         return when (initiator.role) {
             UserRole.GUEST -> initiator.id == guest.id
             UserRole.HOST -> initiator.id == host.id
-            UserRole.PLATFORM -> true
+            UserRole.ADMIN -> true
         }
     }
 
@@ -113,7 +118,7 @@ class ChatService(
         return when (requester.role) {
             UserRole.GUEST -> requester.id == chat.guest.id
             UserRole.HOST -> requester.id == chat.host.id
-            UserRole.PLATFORM -> true
+            UserRole.ADMIN -> true
         }
     }
 }

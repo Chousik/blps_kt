@@ -1,434 +1,69 @@
 <!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WS Chat Test</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>WebSocket Chat Test</title>
   <style>
-    :root {
-      --bg: #f3efe7;
-      --panel: #fffaf2;
-      --ink: #1f1a16;
-      --muted: #6f655c;
-      --line: #d9cdbd;
-      --accent: #0f766e;
-      --accent-2: #9a3412;
-      --error: #b91c1c;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
     body {
       margin: 0;
-      font-family: Georgia, "Times New Roman", serif;
-      color: var(--ink);
-      background:
-        radial-gradient(circle at top left, rgba(15, 118, 110, 0.12), transparent 35%),
-        radial-gradient(circle at bottom right, rgba(154, 52, 18, 0.12), transparent 35%),
-        var(--bg);
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background: #f4f7fb;
+      color: #182230;
     }
 
     main {
-      max-width: 1100px;
-      margin: 0 auto;
+      max-width: 760px;
+      margin: 48px auto;
       padding: 24px;
     }
 
+    section {
+      background: #fff;
+      border: 1px solid #d7dfeb;
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 12px 28px rgba(16, 24, 40, 0.08);
+    }
+
     h1 {
-      margin: 0 0 8px;
-      font-size: 34px;
-      line-height: 1.1;
+      margin-top: 0;
     }
 
     p {
-      margin: 0 0 16px;
-      color: var(--muted);
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 16px;
-      margin-top: 20px;
-    }
-
-    .panel {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      padding: 18px;
-      box-shadow: 0 14px 30px rgba(31, 26, 22, 0.08);
-    }
-
-    .panel h2 {
-      margin: 0 0 12px;
-      font-size: 18px;
-    }
-
-    label {
-      display: block;
-      margin: 0 0 12px;
-      font-size: 14px;
-      color: var(--muted);
-    }
-
-    input, textarea {
-      width: 100%;
-      margin-top: 6px;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      padding: 10px 12px;
-      font: inherit;
-      color: var(--ink);
-      background: #fff;
-    }
-
-    textarea {
-      min-height: 100px;
-      resize: vertical;
-    }
-
-    .row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    button {
-      border: 0;
-      border-radius: 999px;
-      padding: 10px 16px;
-      font: inherit;
-      cursor: pointer;
-      color: #fff;
-      background: var(--accent);
-    }
-
-    button.secondary {
-      background: var(--accent-2);
-    }
-
-    button.ghost {
-      background: #6b7280;
-    }
-
-    button:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-    }
-
-    .status {
-      margin-top: 10px;
-      font-size: 14px;
-      color: var(--muted);
-    }
-
-    .status strong {
-      color: var(--ink);
-    }
-
-    .log, .messages {
-      min-height: 320px;
-      max-height: 420px;
-      overflow: auto;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 12px;
-      background: #fff;
-      white-space: pre-wrap;
-      word-break: break-word;
+      line-height: 1.55;
+      color: #475467;
     }
 
     code {
-      font-family: "SFMono-Regular", Consolas, monospace;
-      font-size: 13px;
+      background: #eef4ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    a {
+      color: #175cd3;
     }
   </style>
 </head>
 <body>
 <main>
-  <h1>WebSocket Chat Test</h1>
-  <div class="grid">
-    <section class="panel">
-      <h2>Connection</h2>
-      <label>
-        WebSocket URL
-        <input id="wsUrl" value="ws://localhost:8433/ws">
-      </label>
-      <label>
-        Chat ID
-        <input id="chatId" placeholder="33333333-3333-3333-3333-333333333333">
-      </label>
-      <label>
-        requesterUserId
-        <input id="requesterUserId" placeholder="11111111-1111-1111-1111-111111111111">
-      </label>
-      <div class="row">
-        <button id="connectBtn">Connect</button>
-        <button id="disconnectBtn" class="ghost" disabled>Disconnect</button>
-        <button id="subscribeBtn" class="secondary" disabled>Subscribe</button>
-      </div>
-      <div class="status" id="status">Status: <strong>disconnected</strong></div>
-    </section>
-
-    <section class="panel">
-      <h2>Send Message</h2>
-      <label>
-        Message
-        <textarea id="messageInput" placeholder="Hello from websocket"></textarea>
-      </label>
-      <div class="row">
-        <button id="sendBtn" disabled>Send</button>
-        <button id="clearMessagesBtn" class="ghost">Clear Messages</button>
-      </div>
-    </section>
-  </div>
-
-  <div class="grid">
-    <section class="panel">
-      <h2>Received Messages</h2>
-      <div id="messages" class="messages"></div>
-    </section>
-
-    <section class="panel">
-      <h2>Protocol Log</h2>
-      <div id="log" class="log"></div>
-    </section>
-  </div>
+  <section>
+    <h1>Legacy Manual Page</h1>
+    <p>
+      Эта страница больше не используется. Проект переведен на
+      <code>Spring Security + JAAS + HTTP Basic</code>, поэтому ручная проверка
+      REST и WebSocket выполняется через backend-страницу:
+    </p>
+    <p>
+      <a href="http://localhost:8433/rest-endpoints-smoke.html">http://localhost:8433/rest-endpoints-smoke.html</a>
+    </p>
+    <p>
+      Открой ее через backend, пройди HTTP Basic-аутентификацию и используй
+      встроенный клиент. Текущий пользователь определяется через <code>/me</code>,
+      а WebSocket подключается под тем же аутентифицированным principal.
+    </p>
+  </section>
 </main>
-
-<script>
-  const wsUrlInput = document.getElementById("wsUrl");
-  const chatIdInput = document.getElementById("chatId");
-  const requesterUserIdInput = document.getElementById("requesterUserId");
-  const messageInput = document.getElementById("messageInput");
-  const connectBtn = document.getElementById("connectBtn");
-  const disconnectBtn = document.getElementById("disconnectBtn");
-  const subscribeBtn = document.getElementById("subscribeBtn");
-  const sendBtn = document.getElementById("sendBtn");
-  const clearMessagesBtn = document.getElementById("clearMessagesBtn");
-  const statusEl = document.getElementById("status");
-  const logEl = document.getElementById("log");
-  const messagesEl = document.getElementById("messages");
-
-  let socket = null;
-  let connected = false;
-  let subscribed = false;
-  let subscriptionId = "sub-0";
-
-  function setStatus(text, isError = false) {
-    statusEl.innerHTML = `Status: <strong class="${isError ? "error" : ""}">${text}</strong>`;
-  }
-
-  function logLine(text, isError = false) {
-    const line = document.createElement("div");
-    if (isError) {
-      line.className = "error";
-    }
-    line.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
-    logEl.appendChild(line);
-    logEl.scrollTop = logEl.scrollHeight;
-  }
-
-  function renderMessage(payload) {
-    const item = document.createElement("div");
-    item.className = "message";
-
-    const head = document.createElement("div");
-    head.className = "message-head";
-    head.textContent = `${payload.senderUsername || "unknown"} (${payload.senderUserId || "n/a"}) • ${payload.createdAt || ""}`;
-
-    const body = document.createElement("div");
-    body.textContent = payload.message;
-
-    item.appendChild(head);
-    item.appendChild(body);
-    messagesEl.appendChild(item);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-  }
-
-  function updateButtons() {
-    connectBtn.disabled = connected;
-    disconnectBtn.disabled = !connected;
-    subscribeBtn.disabled = !connected || subscribed;
-    sendBtn.disabled = !connected || !subscribed;
-  }
-
-  function escapeHeaderValue(value) {
-    return String(value)
-      .replace(/\\/g, "\\\\")
-      .replace(/\r/g, "\\r")
-      .replace(/\n/g, "\\n")
-      .replace(/:/g, "\\c");
-  }
-
-  function buildFrame(command, headers = {}, body = "") {
-    const headerLines = Object.entries(headers).map(([key, value]) => `${key}:${escapeHeaderValue(value)}`);
-    return `${command}\n${headerLines.join("\n")}\n\n${body}\0`;
-  }
-
-  function parseFrames(data) {
-    return data.split("\0").filter(Boolean).map((frameText) => {
-      const separatorIndex = frameText.indexOf("\n\n");
-      const head = separatorIndex >= 0 ? frameText.slice(0, separatorIndex) : frameText;
-      const body = separatorIndex >= 0 ? frameText.slice(separatorIndex + 2) : "";
-      const lines = head.split("\n");
-      const command = lines[0];
-      const headers = {};
-
-      for (let i = 1; i < lines.length; i += 1) {
-        const line = lines[i];
-        const colonIndex = line.indexOf(":");
-        if (colonIndex > 0) {
-          const key = line.slice(0, colonIndex);
-          headers[key] = line.slice(colonIndex + 1);
-        }
-      }
-
-      return { command, headers, body };
-    });
-  }
-
-  function getRequiredValues() {
-    const wsUrl = wsUrlInput.value.trim();
-    const chatId = chatIdInput.value.trim();
-    const requesterUserId = requesterUserIdInput.value.trim();
-
-    if (!wsUrl || !chatId || !requesterUserId) {
-      throw new Error("Заполни WebSocket URL, chatId и requesterUserId.");
-    }
-
-    return { wsUrl, chatId, requesterUserId };
-  }
-
-  function connect() {
-    const { wsUrl } = getRequiredValues();
-    socket = new WebSocket(wsUrl);
-
-    socket.onopen = () => {
-      logLine(`WebSocket opened: ${wsUrl}`);
-      socket.send(buildFrame("CONNECT", {
-        "accept-version": "1.2",
-        "heart-beat": "0,0"
-      }));
-      logLine("STOMP CONNECT sent");
-    };
-
-    socket.onmessage = (event) => {
-      const frames = parseFrames(event.data);
-      frames.forEach((frame) => {
-        logLine(`RECV ${frame.command}`);
-
-        if (frame.command === "CONNECTED") {
-          connected = true;
-          setStatus("connected");
-          updateButtons();
-        } else if (frame.command === "MESSAGE") {
-          try {
-            renderMessage(JSON.parse(frame.body));
-          } catch (error) {
-            logLine(`Cannot parse MESSAGE body: ${error.message}`, true);
-          }
-        } else if (frame.command === "ERROR") {
-          setStatus("error", true);
-          logLine(frame.body || "Broker returned ERROR frame", true);
-        }
-      });
-    };
-
-    socket.onerror = () => {
-      setStatus("socket error", true);
-      logLine("WebSocket transport error", true);
-    };
-
-    socket.onclose = () => {
-      connected = false;
-      subscribed = false;
-      socket = null;
-      setStatus("disconnected");
-      updateButtons();
-      logLine("WebSocket closed");
-    };
-  }
-
-  function disconnect() {
-    if (!socket) {
-      return;
-    }
-    socket.close();
-  }
-
-  function subscribe() {
-    const { chatId, requesterUserId } = getRequiredValues();
-    if (!socket || !connected) {
-      throw new Error("Сначала подключись.");
-    }
-
-    socket.send(buildFrame("SUBSCRIBE", {
-      id: subscriptionId,
-      destination: `/topic/chats/${chatId}`,
-      requesterUserId
-    }));
-
-    subscribed = true;
-    updateButtons();
-    logLine(`SUBSCRIBE /topic/chats/${chatId}`);
-  }
-
-  function sendMessage() {
-    const { chatId, requesterUserId } = getRequiredValues();
-    const text = messageInput.value.trim();
-
-    if (!text) {
-      throw new Error("Сообщение не должно быть пустым.");
-    }
-
-    socket.send(buildFrame("SEND", {
-      destination: `/app/chats/${chatId}/messages`,
-      "content-type": "application/json",
-      requesterUserId
-    }, JSON.stringify({ message: text })));
-
-    logLine(`SEND /app/chats/${chatId}/messages`);
-    messageInput.value = "";
-  }
-
-  connectBtn.addEventListener("click", () => {
-    try {
-      connect();
-    } catch (error) {
-      logLine(error.message, true);
-      setStatus("input error", true);
-    }
-  });
-
-  disconnectBtn.addEventListener("click", disconnect);
-
-  subscribeBtn.addEventListener("click", () => {
-    try {
-      subscribe();
-    } catch (error) {
-      logLine(error.message, true);
-      setStatus("subscribe error", true);
-    }
-  });
-
-  sendBtn.addEventListener("click", () => {
-    try {
-      sendMessage();
-    } catch (error) {
-      logLine(error.message, true);
-      setStatus("send error", true);
-    }
-  });
-
-  clearMessagesBtn.addEventListener("click", () => {
-    messagesEl.innerHTML = "";
-  });
-
-  updateButtons();
-</script>
 </body>
 </html>

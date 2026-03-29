@@ -4,6 +4,7 @@ import jakarta.validation.Valid
 import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
 import java.util.UUID
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -25,21 +26,21 @@ class ChatMessageController(
 ) {
 
     @PostMapping("/chats/{chatId}/messages")
+    @PreAuthorize("hasAuthority('PRIV_CHAT_MESSAGE_WRITE')")
     fun createMessage(
         @PathVariable chatId: UUID,
-        @RequestParam("requesterUserId") requesterUserId: UUID,
         @Valid @RequestBody request: CreateChatMessageRequest
     ): ChatMessageResponse =
-        chatMessageService.createMessage(chatId, requesterUserId, request)
+        chatMessageService.createMessage(chatId, request)
 
     @GetMapping("/chats/{chatId}/messages")
+    @PreAuthorize("hasAuthority('PRIV_CHAT_MESSAGE_READ')")
     fun getMessages(
         @PathVariable chatId: UUID,
-        @RequestParam("requesterUserId") requesterUserId: UUID,
         @RequestParam("limit", defaultValue = "20") @Min(1) @Max(100) limit: Int,
         @RequestParam("offset", defaultValue = "0") @Min(0) offset: Long
     ): PagedChatMessagesResponse {
-        val page = chatMessageService.getMessages(chatId, requesterUserId, limit, offset)
+        val page = chatMessageService.getMessages(chatId, limit, offset)
         return PagedChatMessagesResponse(
             items = page.content,
             total = page.totalElements,
@@ -49,10 +50,10 @@ class ChatMessageController(
     }
 
     @GetMapping("/chats/{chatId}/messages/{messageId}")
+    @PreAuthorize("hasAuthority('PRIV_CHAT_MESSAGE_READ')")
     fun getMessage(
         @PathVariable chatId: UUID,
-        @PathVariable messageId: UUID,
-        @RequestParam("requesterUserId") requesterUserId: UUID
+        @PathVariable messageId: UUID
     ): ChatMessageResponse =
-        chatMessageService.getMessage(chatId, messageId, requesterUserId)
+        chatMessageService.getMessage(chatId, messageId)
 }
