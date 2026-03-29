@@ -2,10 +2,12 @@ package ru.chousik.blps_kt.service
 
 import java.time.OffsetDateTime
 import java.util.UUID
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.data.domain.Sort
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.support.TransactionTemplate
 import org.springframework.web.server.ResponseStatusException
 import ru.chousik.blps_kt.api.chat.ChatMessageResponse
 import ru.chousik.blps_kt.api.chat.CreateChatMessageRequest
@@ -22,28 +24,38 @@ import ru.chousik.blps_kt.repository.UserRepository
 class ChatMessageService(
     private val chatRepository: ChatRepository,
     private val userRepository: UserRepository,
-    private val chatMessageRepository: ChatMessageRepository
+    private val chatMessageRepository: ChatMessageRepository,
+    private val chatMessageOutboxService: ChatMessageOutboxService,
+    @Qualifier("jtaTransactionTemplate")
+    private val transactionTemplate: TransactionTemplate
 ) {
 
-    @Transactional
     fun createMessage(
         chatId: UUID,
         requesterId: UUID,
         request: CreateChatMessageRequest
-    ): ChatMessageResponse {
-        val chat = requireWriteAccess(chatId, requesterId)
-        val requester = loadUser(requesterId)
+    ): ChatMessageResponse =
+        requireNotNull(
+            transactionTemplate.execute {
+                val chat = requireWriteAccess(chatId, requesterId)
+                val requester = loadUser(requesterId)
+                val now = OffsetDateTime.now()
 
-        val message = ChatMessage().apply {
-            id = UUID.randomUUID()
-            this.chat = chat
-            senderUser = requester
-            this.message = request.message!!.trim()
-            createdAt = OffsetDateTime.now()
-        }
+                val message = ChatMessage().apply {
+                    id = UUID.randomUUID()
+                    this.chat = chat
+                    senderUser = requester
+                    this.message = request.message!!.trim()
+                    createdAt = now
+                }
 
-        return ChatMessageResponse.from(chatMessageRepository.save(message))
-    }
+                chat.updatedAt = now
+                chatRepository.save(chat)
+                val savedMessage = chatMessageRepository.save(message)
+                chatMessageOutboxService.enqueue(savedMessage)
+                ChatMessageResponse.from(savedMessage)
+            }
+        ) { "chat message creation transaction returned null result" }
 
     @Transactional(readOnly = true)
     fun getMessages(

@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>BLPS Chat Console</title>
+  <style>
+    :root {
+      --bg: #eef2f7;
+      --panel: #ffffff;
+      --border: #d5dce8;
+      --text: #162033;
+      --muted: #667085;
+      --primary: #155eef;
+      --secondary: #344054;
+      --accent: #067647;
+      --danger: #b42318;
+      --own: #dbeafe;
+      --system: #ecfdf3;
+      --shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, rgba(21, 94, 239, 0.08), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(6, 118, 71, 0.08), transparent 28%),
+        var(--bg);
+      color: var(--text);
+    }
+
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    h1, h2 {
+      margin: 0 0 10px;
+    }
+
+    h1 {
+      font-size: 26px;
+      letter-spacing: -0.02em;
+    }
+
+    h2 {
+      font-size: 17px;
+    }
+
+    .intro {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 12px;
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: 1.2fr 1.4fr 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    label {
+      display: block;
+      margin: 8px 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    input, textarea, select {
+      width: 100%;
+      margin-top: 4px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 9px 11px;
+      font-size: 14px;
+      color: var(--text);
+      background: #fff;
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      color: #fff;
+      background: var(--primary);
+    }
+
+    button.secondary {
+      background: var(--secondary);
+    }
+
+    button.success {
+      background: var(--accent);
+    }
+
+    button.ghost {
+      background: #e9effa;
+      color: #344054;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .status {
+      font-size: 14px;
+      margin: 4px 0 10px;
+    }
+
+    .status.ok {
+      color: var(--accent);
+    }
+
+    .status.err {
+      color: var(--danger);
+    }
+
+    .status.neutral {
+      color: var(--muted);
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 8px 0 14px;
+    }
+
+    .pill {
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: #f2f4f7;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .feed, .log, pre {
+      margin: 0;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #fff;
+      overflow: auto;
+    }
+
+    .feed {
+      min-height: 540px;
+      max-height: 680px;
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    .chat-message {
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      background: #f8fafc;
+    }
+
+    .chat-message.own {
+      background: var(--own);
+    }
+
+    .chat-message.system {
+      background: var(--system);
+    }
+
+    .message-head {
+      margin-bottom: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .message-body {
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.45;
+    }
+
+    .log, pre {
+      max-height: 320px;
+      padding: 10px;
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    pre {
+      background: #0f172a;
+      color: #d1fae5;
+    }
+
+    @media (max-width: 1100px) {
+      .dashboard {
+        grid-template-columns: 1fr;
+      }
+
+      .feed {
+        min-height: 360px;
+      }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <section class="panel">
+    <h1>BLPS Chat Console</h1>
+    <p class="intro">
+      Choose the active user UUID and chat UUID, then open the chat session. The page loads message history over REST,
+      subscribes to the same chat over WebSocket/STOMP, and lets you send new messages from that user.
+    </p>
+    <div class="pill-row">
+      <div class="pill">Same-origin page: no CORS barrier</div>
+      <div class="pill">REST + WebSocket in one screen</div>
+      <div class="pill">Uses requesterUserId from the form</div>
+    </div>
+    <div class="grid">
+      <label>
+        Base URL
+        <input id="baseUrl">
+      </label>
+      <label>
+        Guest User ID
+        <input id="guestId" value="11111111-1111-4111-8111-111111111111">
+      </label>
+      <label>
+        Host User ID
+        <input id="hostId" value="33333333-3333-4333-8333-333333333333">
+      </label>
+      <label>
+        Platform User ID
+        <input id="platformId" value="55555555-5555-4555-8555-555555555555">
+      </label>
+      <label>
+        Active User UUID
+        <input id="requesterId" value="33333333-3333-4333-8333-333333333333">
+      </label>
+      <label>
+        Chat ID
+        <input id="chatId" placeholder="chat uuid">
+      </label>
+      <label>
+        Service ID
+        <input id="serviceId" placeholder="extra service uuid">
+      </label>
+      <label>
+        Message Text
+        <input id="messageText" value="hello from same-origin chat console">
+      </label>
+      <label>
+        Extra Service Title
+        <input id="extraTitle" value="Late checkout">
+      </label>
+      <label>
+        Extra Service Amount
+        <input id="extraAmount" value="1500.00">
+      </label>
+      <label>
+        Extra Service Currency
+        <input id="extraCurrency" value="RUB">
+      </label>
+      <label>
+        Guest Decision
+        <select id="decision">
+          <option value="ACCEPT">ACCEPT</option>
+          <option value="REJECT">REJECT</option>
+        </select>
+      </label>
+    </div>
+    <div class="actions">
+      <button id="btnCreateChat">POST /chats</button>
+      <button id="btnGetChats">GET /chats</button>
+      <button id="btnCreateMsg">POST /chats/{id}/messages</button>
+      <button id="btnGetMsgs">GET /chats/{id}/messages</button>
+      <button id="btnCreateExtra">POST /extra-services</button>
+      <button id="btnGetExtra">GET /extra-services</button>
+      <button id="btnDecideExtra">POST /extra-services/{id}/decision</button>
+      <button id="btnGetPayment">GET /extra-services/{id}/payment</button>
+      <button class="ghost" id="btnClearResponse">Clear Response</button>
+    </div>
+  </section>
+
+  <section class="dashboard">
+    <section class="panel">
+      <h2>Chat Session</h2>
+      <div id="chatStatus" class="status neutral">WebSocket: disconnected</div>
+      <div class="actions">
+        <button class="success" id="btnOpenChat">Open Chat</button>
+        <button class="secondary" id="btnLoadHistory">Load History</button>
+        <button id="btnSendWs" disabled>Send via WS</button>
+        <button class="ghost" id="btnDisconnectWs" disabled>Disconnect</button>
+        <button class="ghost" id="btnClearFeed">Clear Feed</button>
+      </div>
+      <label>
+        Notes
+        <textarea readonly>The page uses Active User UUID as requesterUserId for both REST and WebSocket chat actions. Open Chat will connect to /ws, subscribe to /topic/chats/{chatId}, then load message history from REST.</textarea>
+      </label>
+      <h2>Response</h2>
+      <div id="status" class="status neutral">No request yet.</div>
+      <pre id="output"></pre>
+    </section>
+
+    <section class="panel">
+      <h2>Chat Feed</h2>
+      <div id="messages" class="feed"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Transport Log</h2>
+      <div id="wsLog" class="log"></div>
+    </section>
+  </section>
+</main>
+
+<script>
+  const byId = (id) => document.getElementById(id);
+
+  const ui = {
+    baseUrl: byId("baseUrl"),
+    guestId: byId("guestId"),
+    hostId: byId("hostId"),
+    platformId: byId("platformId"),
+    requesterId: byId("requesterId"),
+    chatId: byId("chatId"),
+    serviceId: byId("serviceId"),
+    messageText: byId("messageText"),
+    extraTitle: byId("extraTitle"),
+    extraAmount: byId("extraAmount"),
+    extraCurrency: byId("extraCurrency"),
+    decision: byId("decision"),
+    status: byId("status"),
+    output: byId("output"),
+    chatStatus: byId("chatStatus"),
+    messages: byId("messages"),
+    wsLog: byId("wsLog"),
+    btnSendWs: byId("btnSendWs"),
+    btnDisconnectWs: byId("btnDisconnectWs")
+  };
+
+  let socket = null;
+  let wsConnected = false;
+  let wsSubscribed = false;
+  let subscriptionId = "sub-0";
+
+  ui.baseUrl.value = window.location.origin;
+
+  function pretty(value) {
+    if (typeof value === "string") {
+      return value;
+    }
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch (_e) {
+      return String(value);
+    }
+  }
+
+  function setStatus(text, ok = null) {
+    ui.status.className = ok === null ? "status neutral" : ok ? "status ok" : "status err";
+    ui.status.textContent = text;
+  }
+
+  function setChatStatus(text, ok = null) {
+    ui.chatStatus.className = ok === null ? "status neutral" : ok ? "status ok" : "status err";
+    ui.chatStatus.textContent = text;
+  }
+
+  function logWs(text, isError = false) {
+    const line = document.createElement("div");
+    line.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+    if (isError) {
+      line.style.color = "#b42318";
+    }
+    ui.wsLog.appendChild(line);
+    ui.wsLog.scrollTop = ui.wsLog.scrollHeight;
+  }
+
+  function clearFeed() {
+    ui.messages.innerHTML = "";
+  }
+
+  function renderMessage(payload) {
+    const item = document.createElement("div");
+    const activeUserId = ui.requesterId.value.trim();
+    const isSystem = !payload.senderUserId;
+    const isOwn = payload.senderUserId && payload.senderUserId === activeUserId;
+
+    item.className = "chat-message";
+    if (isSystem) {
+      item.classList.add("system");
+    } else if (isOwn) {
+      item.classList.add("own");
+    }
+
+    const head = document.createElement("div");
+    head.className = "message-head";
+    head.textContent = `${payload.senderUsername || "system"} (${payload.senderUserId || "n/a"}) • ${payload.createdAt || ""}`;
+
+    const body = document.createElement("div");
+    body.className = "message-body";
+    body.textContent = payload.message || "";
+
+    item.appendChild(head);
+    item.appendChild(body);
+    ui.messages.appendChild(item);
+    ui.messages.scrollTop = ui.messages.scrollHeight;
+  }
+
+  function normalizedBaseUrl() {
+    return (ui.baseUrl.value.trim() || window.location.origin).replace(/\/+$/, "");
+  }
+
+  function websocketUrl() {
+    const url = new URL(normalizedBaseUrl());
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    url.pathname = "/ws";
+    url.search = "";
+    url.hash = "";
+    return url.toString();
+  }
+
+  async function send(path, method, body) {
+    const url = normalizedBaseUrl() + path;
+    const headers = body ? { "Content-Type": "application/json" } : {};
+    const response = await fetch(url, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined
+    });
+
+    const text = await response.text();
+    let parsed = text;
+    try {
+      parsed = text ? JSON.parse(text) : null;
+    } catch (_e) {
+      parsed = text;
+    }
+
+    const payload = {
+      request: { method, url, body: body || null },
+      response: {
+        status: response.status,
+        ok: response.ok,
+        body: parsed
+      }
+    };
+
+    setStatus(`${method} ${path} -> ${response.status}`, response.ok);
+    ui.output.textContent = pretty(payload);
+    return payload.response;
+  }
+
+  function requireRequesterId() {
+    const value = ui.requesterId.value.trim();
+    if (!value) {
+      throw new Error("Active User UUID is required");
+    }
+    return value;
+  }
+
+  function requireChatId() {
+    const value = ui.chatId.value.trim();
+    if (!value) {
+      throw new Error("chatId is required");
+    }
+    return value;
+  }
+
+  function requireServiceId() {
+    const value = ui.serviceId.value.trim();
+    if (!value) {
+      throw new Error("serviceId is required");
+    }
+    return value;
+  }
+
+  function updateWsButtons() {
+    ui.btnSendWs.disabled = !(wsConnected && wsSubscribed);
+    ui.btnDisconnectWs.disabled = !socket;
+  }
+
+  function escapeHeaderValue(value) {
+    return String(value)
+      .replace(/\\/g, "\\\\")
+      .replace(/\r/g, "\\r")
+      .replace(/\n/g, "\\n")
+      .replace(/:/g, "\\c");
+  }
+
+  function buildFrame(command, headers = {}, body = "") {
+    const headerLines = Object.entries(headers).map(([key, value]) => `${key}:${escapeHeaderValue(value)}`);
+    return `${command}\n${headerLines.join("\n")}\n\n${body}\0`;
+  }
+
+  function parseFrames(data) {
+    return data.split("\0").filter(Boolean).map((frameText) => {
+      const separatorIndex = frameText.indexOf("\n\n");
+      const head = separatorIndex >= 0 ? frameText.slice(0, separatorIndex) : frameText;
+      const body = separatorIndex >= 0 ? frameText.slice(separatorIndex + 2) : "";
+      const lines = head.split("\n");
+      const command = lines[0];
+      const headers = {};
+
+      for (let i = 1; i < lines.length; i += 1) {
+        const line = lines[i];
+        const colonIndex = line.indexOf(":");
+        if (colonIndex > 0) {
+          headers[line.slice(0, colonIndex)] = line.slice(colonIndex + 1);
+        }
+      }
+
+      return { command, headers, body };
+    });
+  }
+
+  function disconnectSocket() {
+    if (socket) {
+      socket.close();
+    }
+  }
+
+  async function loadHistory() {
+    const chatId = requireChatId();
+    const requesterId = requireRequesterId();
+    const result = await send(
+      `/chats/${encodeURIComponent(chatId)}/messages?requesterUserId=${encodeURIComponent(requesterId)}&limit=100&offset=0`,
+      "GET"
+    );
+    if (result.ok && result.body && Array.isArray(result.body.items)) {
+      clearFeed();
+      result.body.items.forEach(renderMessage);
+    }
+  }
+
+  async function openChatSession() {
+    const chatId = requireChatId();
+    const requesterId = requireRequesterId();
+    const url = websocketUrl();
+
+    if (socket) {
+      disconnectSocket();
+    }
+
+    clearFeed();
+    setChatStatus(`WebSocket: connecting to ${url}`, null);
+    logWs(`OPEN ${url}`);
+
+    socket = new WebSocket(url);
+    const activeSocket = socket;
+    wsConnected = false;
+    wsSubscribed = false;
+    updateWsButtons();
+
+    activeSocket.onopen = () => {
+      if (socket !== activeSocket) {
+        return;
+      }
+      activeSocket.send(buildFrame("CONNECT", {
+        "accept-version": "1.2",
+        "heart-beat": "0,0"
+      }));
+      logWs("SEND CONNECT");
+    };
+
+    activeSocket.onmessage = async (event) => {
+      if (socket !== activeSocket) {
+        return;
+      }
+      const frames = parseFrames(event.data);
+      for (const frame of frames) {
+        logWs(`RECV ${frame.command}`);
+        if (frame.command === "CONNECTED") {
+          wsConnected = true;
+          subscriptionId = `sub-${Date.now()}`;
+          activeSocket.send(buildFrame("SUBSCRIBE", {
+            id: subscriptionId,
+            destination: `/topic/chats/${chatId}`,
+            requesterUserId: requesterId
+          }));
+          wsSubscribed = true;
+          updateWsButtons();
+          setChatStatus(`WebSocket: subscribed to chat ${chatId}`, true);
+          logWs(`SUBSCRIBE /topic/chats/${chatId}`);
+          await loadHistory();
+        } else if (frame.command === "MESSAGE") {
+          try {
+            renderMessage(JSON.parse(frame.body));
+          } catch (error) {
+            logWs(`MESSAGE parse error: ${error.message}`, true);
+          }
+        } else if (frame.command === "ERROR") {
+          setChatStatus("WebSocket: broker returned ERROR", false);
+          logWs(frame.body || "Broker returned ERROR frame", true);
+        }
+      }
+    };
+
+    activeSocket.onerror = () => {
+      if (socket !== activeSocket) {
+        return;
+      }
+      setChatStatus("WebSocket: transport error", false);
+      logWs("Transport error", true);
+    };
+
+    activeSocket.onclose = () => {
+      if (socket !== activeSocket) {
+        return;
+      }
+      socket = null;
+      wsConnected = false;
+      wsSubscribed = false;
+      updateWsButtons();
+      setChatStatus("WebSocket: disconnected", null);
+      logWs("CLOSE");
+    };
+  }
+
+  function sendMessageViaWs() {
+    if (!socket || !wsConnected || !wsSubscribed) {
+      throw new Error("Open chat session first");
+    }
+
+    const chatId = requireChatId();
+    const requesterId = requireRequesterId();
+    const text = ui.messageText.value.trim();
+    if (!text) {
+      throw new Error("Message Text is empty");
+    }
+
+    socket.send(buildFrame("SEND", {
+      destination: `/app/chats/${chatId}/messages`,
+      "content-type": "application/json",
+      requesterUserId: requesterId
+    }, JSON.stringify({ message: text })));
+    logWs(`SEND /app/chats/${chatId}/messages`);
+    ui.messageText.value = "";
+  }
+
+  async function run(action) {
+    try {
+      await action();
+    } catch (e) {
+      setStatus(`Error: ${e.message}`, false);
+      ui.output.textContent = e.stack || String(e);
+    }
+  }
+
+  byId("btnCreateChat").addEventListener("click", () => run(async () => {
+    const body = {
+      guestUserId: ui.guestId.value.trim(),
+      hostUserId: ui.hostId.value.trim(),
+      initiatorUserId: requireRequesterId()
+    };
+    const result = await send("/chats", "POST", body);
+    if (result.ok && result.body && result.body.id) {
+      ui.chatId.value = result.body.id;
+    }
+  }));
+
+  byId("btnGetChats").addEventListener("click", () => run(async () => {
+    const requesterId = requireRequesterId();
+    await send(`/chats?userId=${encodeURIComponent(requesterId)}&requesterUserId=${encodeURIComponent(requesterId)}&limit=20&offset=0`, "GET");
+  }));
+
+  byId("btnCreateMsg").addEventListener("click", () => run(async () => {
+    const chatId = requireChatId();
+    const requesterId = requireRequesterId();
+    const body = { message: ui.messageText.value.trim() };
+    await send(`/chats/${encodeURIComponent(chatId)}/messages?requesterUserId=${encodeURIComponent(requesterId)}`, "POST", body);
+  }));
+
+  byId("btnGetMsgs").addEventListener("click", () => run(loadHistory));
+
+  byId("btnCreateExtra").addEventListener("click", () => run(async () => {
+    const chatId = requireChatId();
+    const requesterId = requireRequesterId();
+    const body = {
+      title: ui.extraTitle.value.trim(),
+      description: "Manual smoke-test request",
+      amount: ui.extraAmount.value.trim(),
+      currency: ui.extraCurrency.value.trim()
+    };
+    const result = await send(`/extra-services?chatId=${encodeURIComponent(chatId)}&requesterUserId=${encodeURIComponent(requesterId)}`, "POST", body);
+    if (result.ok && result.body && result.body.id) {
+      ui.serviceId.value = result.body.id;
+    }
+  }));
+
+  byId("btnGetExtra").addEventListener("click", () => run(async () => {
+    const chatId = requireChatId();
+    const requesterId = requireRequesterId();
+    await send(`/extra-services?chatId=${encodeURIComponent(chatId)}&requesterUserId=${encodeURIComponent(requesterId)}&limit=20&offset=0`, "GET");
+  }));
+
+  byId("btnDecideExtra").addEventListener("click", () => run(async () => {
+    const serviceId = requireServiceId();
+    const requesterId = requireRequesterId();
+    await send(`/extra-services/${encodeURIComponent(serviceId)}/decision?requesterUserId=${encodeURIComponent(requesterId)}`, "POST", {
+      decision: ui.decision.value
+    });
+  }));
+
+  byId("btnGetPayment").addEventListener("click", () => run(async () => {
+    const serviceId = requireServiceId();
+    const requesterId = requireRequesterId();
+    await send(`/extra-services/${encodeURIComponent(serviceId)}/payment?requesterUserId=${encodeURIComponent(requesterId)}`, "GET");
+  }));
+
+  byId("btnOpenChat").addEventListener("click", () => run(openChatSession));
+  byId("btnLoadHistory").addEventListener("click", () => run(loadHistory));
+  byId("btnSendWs").addEventListener("click", () => run(async () => {
+    sendMessageViaWs();
+  }));
+  byId("btnDisconnectWs").addEventListener("click", disconnectSocket);
+  byId("btnClearFeed").addEventListener("click", clearFeed);
+  byId("btnClearResponse").addEventListener("click", () => {
+    ui.output.textContent = "";
+    setStatus("Response cleared", null);
+  });
+
+  updateWsButtons();
+  setStatus("Ready", null);
+</script>
+</body>
+</html>

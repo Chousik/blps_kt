@@ -6,7 +6,6 @@ import org.springframework.messaging.handler.annotation.DestinationVariable
 import org.springframework.messaging.handler.annotation.Header
 import org.springframework.messaging.handler.annotation.MessageMapping
 import org.springframework.messaging.handler.annotation.Payload
-import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Controller
 import org.springframework.validation.annotation.Validated
 import ru.chousik.blps_kt.api.chat.CreateChatMessageRequest
@@ -15,8 +14,7 @@ import ru.chousik.blps_kt.service.ChatMessageService
 @Controller
 @Validated
 class ChatMessageWsController(
-    private val chatMessageService: ChatMessageService,
-    private val messagingTemplate: SimpMessagingTemplate
+    private val chatMessageService: ChatMessageService
 ) {
 
     @MessageMapping("/chats/{chatId}/messages")
@@ -25,7 +23,6 @@ class ChatMessageWsController(
         @Header("requesterUserId") requesterUserId: UUID,
         @Valid @Payload request: CreateChatMessageRequest
     ) {
-        val response = chatMessageService.createMessage(chatId, requesterUserId, request)
-        messagingTemplate.convertAndSend("/topic/chats/$chatId", response)
+        chatMessageService.createMessage(chatId, requesterUserId, request)
     }
 }

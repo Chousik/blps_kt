@@ -2,9 +2,10 @@ package ru.chousik.blps_kt.service.payment
 
 import com.fasterxml.jackson.databind.JsonNode
 import java.time.OffsetDateTime
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.support.TransactionTemplate
 import org.springframework.web.server.ResponseStatusException
 import ru.chousik.blps_kt.model.ExtraServiceRequestStatus
 import ru.chousik.blps_kt.model.PaymentRequestStatus
@@ -17,10 +18,11 @@ class YooKassaNotificationProcessor(
     private val yooKassaClient: YooKassaClient,
     private val paymentRequestRepository: PaymentRequestRepository,
     private val extraServiceRequestRepository: ExtraServiceRequestRepository,
-    private val chatSystemMessageService: ChatSystemMessageService
+    private val chatSystemMessageService: ChatSystemMessageService,
+    @Qualifier("jtaTransactionTemplate")
+    private val transactionTemplate: TransactionTemplate
 ) {
 
-    @Transactional
     fun process(root: JsonNode) {
         val type = root.path("type").asText(null)
             ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "type is required")
@@ -67,41 +69,43 @@ class YooKassaNotificationProcessor(
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "payment currency mismatch")
         }
 
-        when (canonicalPayment.status) {
-            "succeeded" -> {
-                if (event != "payment.succeeded") {
-                    throw ResponseStatusException(HttpStatus.BAD_REQUEST, "event does not match payment status")
+        transactionTemplate.executeWithoutResult {
+            when (canonicalPayment.status) {
+                "succeeded" -> {
+                    if (event != "payment.succeeded") {
+                        throw ResponseStatusException(HttpStatus.BAD_REQUEST, "event does not match payment status")
+                    }
+                    markPaid(payment, extraService)
                 }
-                markPaid(payment, extraService)
-            }
 
-            "canceled" -> {
-                if (event != "payment.canceled") {
-                    throw ResponseStatusException(HttpStatus.BAD_REQUEST, "event does not match payment status")
+                "canceled" -> {
+                    if (event != "payment.canceled") {
+                        throw ResponseStatusException(HttpStatus.BAD_REQUEST, "event does not match payment status")
+                    }
+                    markFailed(payment, extraService)
                 }
-                markFailed(payment, extraService)
-            }
 
-            "pending" -> {
-                if (payment.status != PaymentRequestStatus.PENDING) {
-                    payment.status = PaymentRequestStatus.PENDING
-                    payment.expiresAt = canonicalPayment.expiresAt
-                    paymentRequestRepository.save(payment)
+                "pending" -> {
+                    if (payment.status != PaymentRequestStatus.PENDING) {
+                        payment.status = PaymentRequestStatus.PENDING
+                        payment.expiresAt = canonicalPayment.expiresAt
+                        paymentRequestRepository.save(payment)
+                    }
                 }
-            }
 
-            "waiting_for_capture" -> {
-                throw ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "unexpected YooKassa status waiting_for_capture for capture=true flow"
-                )
-            }
+                "waiting_for_capture" -> {
+                    throw ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "unexpected YooKassa status waiting_for_capture for capture=true flow"
+                    )
+                }
 
-            else -> {
-                throw ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "unsupported YooKassa payment status '${canonicalPayment.status}'"
-                )
+                else -> {
+                    throw ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "unsupported YooKassa payment status '${canonicalPayment.status}'"
+                    )
+                }
             }
         }
     }
