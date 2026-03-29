@@ -41,7 +41,8 @@ class XmlAccountsLoginModule : LoginModule {
 
         val accountsLocation = options["accountsLocation"]?.toString()
             ?: throw FailedLoginException("accountsLocation JAAS option is required")
-        val account = XmlAccountsSupport.loadAccounts(accountsLocation)
+        val bootstrapLocation = options["bootstrapLocation"]?.toString()
+        val account = XmlAccountsSupport.loadAccounts(accountsLocation, bootstrapLocation)
             .firstOrNull { it.username == username }
             ?: throw FailedLoginException("bad credentials")
 

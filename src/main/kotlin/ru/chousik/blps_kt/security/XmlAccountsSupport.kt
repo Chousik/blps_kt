@@ -20,8 +20,9 @@ import ru.chousik.blps_kt.model.UserRole
 object XmlAccountsSupport {
     private val writeLock = ReentrantLock()
 
-    fun loadAccounts(location: String): List<XmlAccountDefinition> =
-        openStream(location).use { input ->
+    fun loadAccounts(location: String, bootstrapLocation: String? = null): List<XmlAccountDefinition> {
+        ensureBootstrapped(location, bootstrapLocation)
+        return openStream(location).use { input ->
             val document = parseDocument(input)
             val nodes = document.getElementsByTagName("account")
             buildList(nodes.length) {
@@ -40,9 +41,11 @@ object XmlAccountsSupport {
                 }
             }
         }
+    }
 
-    fun appendAccount(location: String, account: XmlAccountDefinition) {
+    fun appendAccount(location: String, account: XmlAccountDefinition, bootstrapLocation: String? = null) {
         withWriteLock {
+            ensureBootstrapped(location, bootstrapLocation)
             val path = resolveWritablePath(location)
             val document = if (Files.exists(path)) {
                 Files.newInputStream(path).use(::parseDocument)
@@ -71,6 +74,32 @@ object XmlAccountsSupport {
         DocumentBuilderFactory.newInstance()
             .newDocumentBuilder()
             .parse(input)
+
+    private fun ensureBootstrapped(location: String, bootstrapLocation: String?) {
+        if (location.startsWith("classpath:")) {
+            return
+        }
+
+        val path = resolveWritablePath(location)
+        if (Files.exists(path)) {
+            return
+        }
+
+        val sourceLocation = bootstrapLocation?.takeIf { it.isNotBlank() }
+            ?: throw IllegalStateException("accounts file '$location' does not exist and no bootstrap location is configured")
+
+        withWriteLock {
+            if (Files.exists(path)) {
+                return@withWriteLock
+            }
+
+            val targetDir = path.parent ?: throw IllegalStateException("accounts file must have a parent directory")
+            Files.createDirectories(targetDir)
+            openStream(sourceLocation).use { input ->
+                Files.copy(input, path, StandardCopyOption.REPLACE_EXISTING)
+            }
+        }
+    }
 
     private fun writeDocument(path: Path, document: org.w3c.dom.Document) {
         val targetDir = path.parent ?: throw IllegalStateException("accounts file must have a parent directory")

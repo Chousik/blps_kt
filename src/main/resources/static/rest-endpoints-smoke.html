@@ -286,7 +286,8 @@
     <p class="intro">
       Эта страница открывается без браузерного Basic prompt. Логин сверху выполняет
       <code>HTTP Basic</code> запрос к <code>/auth/session</code>, сервер поднимает сессию,
-      и дальше REST plus WebSocket работают уже под этим authenticated principal.
+      и дальше REST plus WebSocket работают уже под этим authenticated principal. Для деплоя
+      по умолчанию выставлен <code>https://fixly-meow.ru:5000</code>.
     </p>
   </section>
 
@@ -495,7 +496,11 @@
   let wsConnected = false;
   let wsSubscribed = false;
 
-  ui.baseUrl.value = window.location.origin;
+  const DEPLOYMENT_BASE_URL = "https://fixly-meow.ru:5000";
+
+  ui.baseUrl.value = window.location.origin === DEPLOYMENT_BASE_URL
+    ? window.location.origin
+    : DEPLOYMENT_BASE_URL;
 
   function pretty(value) {
     if (typeof value === "string") {
@@ -1014,7 +1019,6 @@
   clearCurrentUser();
   setRegisterStatus("Можно создать новый аккаунт GUEST или HOST.", null);
   updateWsButtons();
-  run(() => refreshCurrentUser(false));
 </script>
 </body>
 </html>

@@ -16,8 +16,10 @@ import org.springframework.stereotype.Component
 class JaasXmlAuthenticationProvider(
     private val xmlAccountRegistry: XmlAccountRegistry,
     private val rolePrivilegeModel: RolePrivilegeModel,
-    @Value("\${blps.security.accounts-location:classpath:security/accounts.xml}")
-    private val accountsLocation: String
+    @Value("\${blps.security.accounts-location:\${user.dir}/data/security/accounts.xml}")
+    private val accountsLocation: String,
+    @Value("\${blps.security.accounts-bootstrap-location:classpath:security/accounts.xml}")
+    private val bootstrapLocation: String
 ) : AuthenticationProvider {
 
     private val jaasConfiguration = object : Configuration() {
@@ -26,14 +28,17 @@ class JaasXmlAuthenticationProvider(
                 AppConfigurationEntry(
                     XmlAccountsLoginModule::class.java.name,
                     AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                    mapOf("accountsLocation" to accountsLocation)
+                    mapOf(
+                        "accountsLocation" to accountsLocation,
+                        "bootstrapLocation" to bootstrapLocation
+                    )
                 )
             )
     }
 
     @PostConstruct
     fun validateAccounts() {
-        XmlAccountsSupport.loadAccounts(accountsLocation)
+        XmlAccountsSupport.loadAccounts(accountsLocation, bootstrapLocation)
     }
 
     override fun authenticate(authentication: Authentication): Authentication {
