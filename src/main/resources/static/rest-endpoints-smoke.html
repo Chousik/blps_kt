@@ -287,7 +287,7 @@
       Эта страница открывается без браузерного Basic prompt. Логин сверху выполняет
       <code>HTTP Basic</code> запрос к <code>/auth/session</code>, сервер поднимает сессию,
       и дальше REST plus WebSocket работают уже под этим authenticated principal. Для деплоя
-      по умолчанию выставлен <code>https://fixly-meow.ru:5000</code>.
+      по умолчанию выставлен <code>https://fixly-meow.ru:8443</code>.
     </p>
   </section>
 
@@ -496,7 +496,7 @@
   let wsConnected = false;
   let wsSubscribed = false;
 
-  const DEPLOYMENT_BASE_URL = "https://fixly-meow.ru:5000";
+  const DEPLOYMENT_BASE_URL = "https://fixly-meow.ru:8443";
 
   ui.baseUrl.value = window.location.origin === DEPLOYMENT_BASE_URL
     ? window.location.origin
@@ -899,7 +899,7 @@
       logWs("Transport error", true);
     };
 
-    activeSocket.onclose = () => {
+    activeSocket.onclose = (event) => {
       if (socket !== activeSocket) {
         return;
       }
@@ -907,8 +907,9 @@
       wsConnected = false;
       wsSubscribed = false;
       updateWsButtons();
-      setChatStatus("WebSocket: disconnected", null);
-      logWs("CLOSE");
+      const details = `code=${event.code} reason=${event.reason || "n/a"} clean=${event.wasClean}`;
+      setChatStatus(`WebSocket: disconnected (${details})`, event.wasClean ? null : false);
+      logWs(`CLOSE ${details}`, !event.wasClean);
     };
   }
 

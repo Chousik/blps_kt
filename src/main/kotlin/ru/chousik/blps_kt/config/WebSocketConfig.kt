@@ -10,11 +10,13 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 @Configuration
 @EnableWebSocketMessageBroker
 class WebSocketConfig(
-    private val webSocketAuthChannelInterceptor: WebSocketAuthChannelInterceptor
+    private val webSocketAuthChannelInterceptor: WebSocketAuthChannelInterceptor,
+    private val webSocketPrincipalHandshakeHandler: WebSocketPrincipalHandshakeHandler
 ) : WebSocketMessageBrokerConfigurer {
 
     override fun registerStompEndpoints(registry: StompEndpointRegistry) {
         registry.addEndpoint("/ws")
+            .setHandshakeHandler(webSocketPrincipalHandshakeHandler)
             .setAllowedOriginPatterns("*")
     }
 

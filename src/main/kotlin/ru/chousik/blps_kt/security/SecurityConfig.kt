@@ -48,7 +48,9 @@ class SecurityConfig(
                     "/webhooks/yookassa/**",
                     "/error",
                     "/rest-endpoints-smoke.html",
-                    "/auth/register"
+                    "/auth/register",
+                    "/ws",
+                    "/ws/**"
                 ).permitAll()
                     .anyRequest().authenticated()
             }
