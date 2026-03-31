@@ -495,10 +495,12 @@
   let socket = null;
   let wsConnected = false;
   let wsSubscribed = false;
+  let renderedMessageIds = new Set();
+  let receiptHandlers = new Map();
 
   const DEPLOYMENT_BASE_URL = "https://fixly-meow.ru:8443";
 
-  ui.baseUrl.value = window.location.origin === DEPLOYMENT_BASE_URL
+  ui.baseUrl.value = /^https?:\/\//.test(window.location.origin)
     ? window.location.origin
     : DEPLOYMENT_BASE_URL;
 
@@ -545,9 +547,17 @@
 
   function clearFeed() {
     ui.messages.innerHTML = "";
+    renderedMessageIds.clear();
   }
 
   function renderMessage(payload) {
+    if (payload && payload.id) {
+      if (renderedMessageIds.has(payload.id)) {
+        return;
+      }
+      renderedMessageIds.add(payload.id);
+    }
+
     const item = document.createElement("div");
     item.className = "msg";
     if (payload.type === "PLATFORM") {
@@ -587,6 +597,28 @@
     if (!currentUser) {
       throw new Error("Login first.");
     }
+  }
+
+  async function ensureServerSession() {
+    const user = await refreshCurrentUser(true);
+    if (!user) {
+      throw new Error("Session expired. Login again.");
+    }
+    return user;
+  }
+
+  function rememberReceipt(receiptId, handler) {
+    receiptHandlers.set(receiptId, handler);
+  }
+
+  async function handleReceipt(receiptId) {
+    const handler = receiptHandlers.get(receiptId);
+    if (!handler) {
+      return;
+    }
+
+    receiptHandlers.delete(receiptId);
+    await handler();
   }
 
   function updateAuthDependentControls() {
@@ -831,7 +863,7 @@
   }
 
   async function openChatSession() {
-    requireAuthenticated();
+    await ensureServerSession();
     const chatId = requireChatId();
     const url = websocketUrl();
 
@@ -847,6 +879,7 @@
     const activeSocket = socket;
     wsConnected = false;
     wsSubscribed = false;
+    receiptHandlers.clear();
     updateWsButtons();
 
     activeSocket.onopen = () => {
@@ -870,19 +903,30 @@
         logWs(`RECV ${frame.command}`);
         if (frame.command === "CONNECTED") {
           wsConnected = true;
+          const subscribeReceiptId = `sub-${chatId}-${Date.now()}`;
+          rememberReceipt(subscribeReceiptId, async () => {
+            wsSubscribed = true;
+            updateWsButtons();
+            setChatStatus(`WebSocket: subscribed to chat ${chatId}`, true);
+            await loadHistory();
+          });
           activeSocket.send(buildFrame("SUBSCRIBE", {
-            id: `sub-${Date.now()}`,
-            destination: `/topic/chats/${chatId}`
+            id: subscribeReceiptId,
+            destination: `/topic/chats/${chatId}`,
+            receipt: subscribeReceiptId
           }));
-          wsSubscribed = true;
           updateWsButtons();
-          setChatStatus(`WebSocket: subscribed to chat ${chatId}`, true);
-          await loadHistory();
+          setChatStatus(`WebSocket: subscribing to chat ${chatId}`, null);
         } else if (frame.command === "MESSAGE") {
           try {
             renderMessage(JSON.parse(frame.body));
           } catch (error) {
             logWs(`MESSAGE parse error: ${error.message}`, true);
+          }
+        } else if (frame.command === "RECEIPT") {
+          const receiptId = frame.headers["receipt-id"] || frame.headers.receipt;
+          if (receiptId) {
+            await handleReceipt(receiptId);
           }
         } else if (frame.command === "ERROR") {
           setChatStatus("WebSocket: broker returned ERROR", false);
@@ -906,6 +950,7 @@
       socket = null;
       wsConnected = false;
       wsSubscribed = false;
+      receiptHandlers.clear();
       updateWsButtons();
       const details = `code=${event.code} reason=${event.reason || "n/a"} clean=${event.wasClean}`;
       setChatStatus(`WebSocket: disconnected (${details})`, event.wasClean ? null : false);
@@ -913,8 +958,8 @@
     };
   }
 
-  function sendMessageViaWs() {
-    requireAuthenticated();
+  async function sendMessageViaWs() {
+    await ensureServerSession();
     if (!socket || !wsConnected || !wsSubscribed) {
       throw new Error("Open chat session first");
     }
@@ -925,11 +970,17 @@
       throw new Error("Message Text is empty");
     }
 
+    const receiptId = `send-${Date.now()}`;
+    rememberReceipt(receiptId, async () => {
+      await loadHistory();
+    });
+
     socket.send(buildFrame("SEND", {
       destination: `/app/chats/${chatId}/messages`,
-      "content-type": "application/json"
+      "content-type": "application/json",
+      receipt: receiptId
     }, JSON.stringify({ message: text })));
-    logWs(`SEND /app/chats/${chatId}/messages`);
+    logWs(`SEND /app/chats/${chatId}/messages receipt=${receiptId}`);
     ui.messageText.value = "";
   }
 
@@ -1008,7 +1059,7 @@
   byId("btnOpenChat").addEventListener("click", () => run(openChatSession));
   byId("btnLoadHistory").addEventListener("click", () => run(loadHistory));
   byId("btnSendWs").addEventListener("click", () => run(async () => {
-    sendMessageViaWs();
+    await sendMessageViaWs();
   }));
   byId("btnDisconnectWs").addEventListener("click", disconnectSocket);
   byId("btnClearFeed").addEventListener("click", clearFeed);

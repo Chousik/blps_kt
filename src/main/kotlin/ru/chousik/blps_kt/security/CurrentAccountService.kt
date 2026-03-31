@@ -8,7 +8,10 @@ import org.springframework.stereotype.Service
 import org.springframework.web.server.ResponseStatusException
 
 @Service
-class CurrentAccountService {
+class CurrentAccountService(
+    private val xmlAccountRegistry: XmlAccountRegistry,
+    private val rolePrivilegeModel: RolePrivilegeModel
+) {
 
     fun currentAccount(): AuthenticatedAccount =
         fromAuthentication(SecurityContextHolder.getContext().authentication)
@@ -17,7 +20,8 @@ class CurrentAccountService {
         when (principal) {
             is Authentication -> fromAuthentication(principal)
             is AuthenticatedAccount -> principal
-            else -> throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "authenticated principal is required")
+            null -> throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "authenticated principal is required")
+            else -> fromUsername(principal.name)
         }
 
     fun fromAuthentication(authentication: Authentication?): AuthenticatedAccount {
@@ -31,5 +35,24 @@ class CurrentAccountService {
             else -> throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "unsupported authenticated principal")
         }
     }
-}
 
+    private fun fromUsername(username: String?): AuthenticatedAccount {
+        val normalizedUsername = username?.trim()
+            ?: throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "authenticated principal is required")
+        if (normalizedUsername.isBlank()) {
+            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "authenticated principal is required")
+        }
+
+        val account = xmlAccountRegistry.getByUsername(normalizedUsername)
+        val authorities = rolePrivilegeModel.authoritiesFor(account.role)
+            .mapNotNull { it.authority }
+            .toSet()
+
+        return AuthenticatedAccount(
+            username = account.username,
+            userId = account.userId,
+            role = account.role,
+            authorities = authorities
+        )
+    }
+}
