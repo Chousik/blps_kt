@@ -8,8 +8,6 @@ import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import org.springframework.web.server.ResponseStatusException
 import ru.chousik.blps_kt.config.YooKassaProperties
-import ru.chousik.blps_kt.model.ExtraServiceRequest
-import ru.chousik.blps_kt.model.User
 
 @Component
 class YooKassaClient(
@@ -19,8 +17,12 @@ class YooKassaClient(
 
     fun createPayment(
         paymentRequestId: UUID,
-        extraService: ExtraServiceRequest,
-        guest: User
+        extraServiceRequestId: UUID,
+        chatId: UUID,
+        title: String,
+        amount: BigDecimal,
+        currency: String,
+        guestUserId: UUID
     ): YooKassaCreatePaymentResult {
         ensureConfigured()
 
@@ -30,20 +32,20 @@ class YooKassaClient(
             .body(
                 YooKassaCreatePaymentRequest(
                     amount = AmountPayload(
-                        value = extraService.amount.toPlainString(),
-                        currency = extraService.currency
+                        value = amount.toPlainString(),
+                        currency = currency
                     ),
                     capture = true,
                     confirmation = ConfirmationPayload(
                         type = "redirect",
                         returnUrl = yooKassaProperties.returnUrl
                     ),
-                    description = "Extra service '${extraService.title}' for chat ${extraService.chat.id}",
+                    description = "Extra service '$title' for chat $chatId",
                     metadata = mapOf(
                         "paymentRequestId" to paymentRequestId.toString(),
-                        "extraServiceRequestId" to extraService.id.toString(),
-                        "chatId" to extraService.chat.id.toString(),
-                        "guestUserId" to guest.id.toString()
+                        "extraServiceRequestId" to extraServiceRequestId.toString(),
+                        "chatId" to chatId.toString(),
+                        "guestUserId" to guestUserId.toString()
                     )
                 )
             )

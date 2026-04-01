@@ -8,11 +8,14 @@ import org.springframework.messaging.simp.stomp.StompCommand
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor
 import org.springframework.messaging.support.ChannelInterceptor
 import org.springframework.stereotype.Component
+import ru.chousik.blps_kt.security.CurrentAccountService
+import ru.chousik.blps_kt.security.Privilege
 import ru.chousik.blps_kt.service.ChatMessageService
 
 @Component
 class WebSocketAuthChannelInterceptor(
-    private val chatMessageService: ChatMessageService
+    private val chatMessageService: ChatMessageService,
+    private val currentAccountService: CurrentAccountService
 ) : ChannelInterceptor {
 
     override fun preSend(message: Message<*>, channel: MessageChannel): Message<*> {
@@ -22,18 +25,22 @@ class WebSocketAuthChannelInterceptor(
         when (accessor.command) {
             StompCommand.SEND -> {
                 if (destination.startsWith("/app/chats/") && destination.endsWith("/messages")) {
+                    val currentAccount = currentAccountService.fromPrincipal(accessor.user)
+                    requireAuthority(currentAccount.hasAuthority(Privilege.PRIV_CHAT_MESSAGE_WRITE.name), "chat write access")
                     chatMessageService.requireWriteAccess(
                         extractChatId(destination, "/app/chats/", "/messages"),
-                        extractRequesterId(accessor)
+                        currentAccount.userId
                     )
                 }
             }
 
             StompCommand.SUBSCRIBE -> {
                 if (destination.startsWith("/topic/chats/")) {
+                    val currentAccount = currentAccountService.fromPrincipal(accessor.user)
+                    requireAuthority(currentAccount.hasAuthority(Privilege.PRIV_CHAT_MESSAGE_READ.name), "chat read access")
                     chatMessageService.requireReadAccess(
                         extractChatId(destination, "/topic/chats/", ""),
-                        extractRequesterId(accessor)
+                        currentAccount.userId
                     )
                 }
             }
@@ -44,13 +51,9 @@ class WebSocketAuthChannelInterceptor(
         return message
     }
 
-    private fun extractRequesterId(accessor: StompHeaderAccessor): UUID {
-        val requesterUserId = accessor.getFirstNativeHeader("requesterUserId")
-            ?: throw MessageDeliveryException("requesterUserId header is required")
-        return try {
-            UUID.fromString(requesterUserId)
-        } catch (_: IllegalArgumentException) {
-            throw MessageDeliveryException("requesterUserId must be a valid UUID")
+    private fun requireAuthority(condition: Boolean, authorityName: String) {
+        if (!condition) {
+            throw MessageDeliveryException("authenticated user does not have $authorityName")
         }
     }
 

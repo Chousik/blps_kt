@@ -8,7 +8,14 @@ VALUES (
     'GUEST',
     '2024-05-01T10:00:00Z'::timestamptz,
     '2024-05-01T10:00:00Z'::timestamptz
-) ON CONFLICT (id) DO NOTHING;
+)
+ON CONFLICT (id) DO UPDATE SET
+    username = EXCLUDED.username,
+    email = EXCLUDED.email,
+    first_name = EXCLUDED.first_name,
+    last_name = EXCLUDED.last_name,
+    role = EXCLUDED.role,
+    updated_at = EXCLUDED.updated_at;
 
 INSERT INTO users (id, username, email, first_name, last_name, role, created_at, updated_at)
 VALUES (
@@ -20,7 +27,14 @@ VALUES (
     'GUEST',
     '2024-05-01T11:00:00Z'::timestamptz,
     '2024-05-01T11:00:00Z'::timestamptz
-) ON CONFLICT (id) DO NOTHING;
+)
+ON CONFLICT (id) DO UPDATE SET
+    username = EXCLUDED.username,
+    email = EXCLUDED.email,
+    first_name = EXCLUDED.first_name,
+    last_name = EXCLUDED.last_name,
+    role = EXCLUDED.role,
+    updated_at = EXCLUDED.updated_at;
 
 INSERT INTO users (id, username, email, first_name, last_name, role, created_at, updated_at)
 VALUES (
@@ -32,7 +46,14 @@ VALUES (
     'HOST',
     '2024-05-01T12:00:00Z'::timestamptz,
     '2024-05-01T12:00:00Z'::timestamptz
-) ON CONFLICT (id) DO NOTHING;
+)
+ON CONFLICT (id) DO UPDATE SET
+    username = EXCLUDED.username,
+    email = EXCLUDED.email,
+    first_name = EXCLUDED.first_name,
+    last_name = EXCLUDED.last_name,
+    role = EXCLUDED.role,
+    updated_at = EXCLUDED.updated_at;
 
 INSERT INTO users (id, username, email, first_name, last_name, role, created_at, updated_at)
 VALUES (
@@ -44,7 +65,14 @@ VALUES (
     'HOST',
     '2024-05-01T13:00:00Z'::timestamptz,
     '2024-05-01T13:00:00Z'::timestamptz
-) ON CONFLICT (id) DO NOTHING;
+)
+ON CONFLICT (id) DO UPDATE SET
+    username = EXCLUDED.username,
+    email = EXCLUDED.email,
+    first_name = EXCLUDED.first_name,
+    last_name = EXCLUDED.last_name,
+    role = EXCLUDED.role,
+    updated_at = EXCLUDED.updated_at;
 
 INSERT INTO users (id, username, email, first_name, last_name, role, created_at, updated_at)
 VALUES (
@@ -53,7 +81,14 @@ VALUES (
     'ops.olga@example.com',
     'Olga',
     'Support',
-    'PLATFORM',
+    'ADMIN',
     '2024-05-01T14:00:00Z'::timestamptz,
     '2024-05-01T14:00:00Z'::timestamptz
-) ON CONFLICT (id) DO NOTHING;
+)
+ON CONFLICT (id) DO UPDATE SET
+    username = EXCLUDED.username,
+    email = EXCLUDED.email,
+    first_name = EXCLUDED.first_name,
+    last_name = EXCLUDED.last_name,
+    role = EXCLUDED.role,
+    updated_at = EXCLUDED.updated_at;

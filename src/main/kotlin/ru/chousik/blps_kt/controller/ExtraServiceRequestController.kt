@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
 import java.util.UUID
 import org.springframework.http.HttpStatus
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -33,21 +34,21 @@ class ExtraServiceRequestController(
 ) {
 
     @PostMapping("/extra-services")
+    @PreAuthorize("hasAuthority('PRIV_EXTRA_SERVICE_CREATE')")
     fun createExtraService(
         @RequestParam("chatId") chatId: UUID,
-        @RequestParam("requesterUserId") requesterUserId: UUID,
         @Valid @RequestBody dto: ExtraServiceRequestCreateDTO
     ): ExtraServiceRequestResponseDTO =
-        extraServiceRequestService.createExtraService(chatId, requesterUserId, dto)
+        extraServiceRequestService.createExtraService(chatId, dto)
 
     @GetMapping("/extra-services")
+    @PreAuthorize("hasAuthority('PRIV_EXTRA_SERVICE_READ')")
     fun getChatExtraServices(
         @RequestParam("chatId") chatId: UUID,
-        @RequestParam("requesterUserId") requesterUserId: UUID,
         @RequestParam("limit", defaultValue = "20") @Min(1) @Max(100) limit: Int,
         @RequestParam("offset", defaultValue = "0") @Min(0) offset: Long
     ): PagedExtraServiceRequestsResponse {
-        val page = extraServiceRequestService.getExtraServicesForChat(chatId, requesterUserId, limit, offset)
+        val page = extraServiceRequestService.getExtraServicesForChat(chatId, limit, offset)
         return PagedExtraServiceRequestsResponse(
             items = page.content,
             total = page.totalElements,
@@ -57,41 +58,35 @@ class ExtraServiceRequestController(
     }
 
     @GetMapping("/extra-services/{serviceId}")
-    fun getExtraService(
-        @PathVariable serviceId: UUID,
-        @RequestParam("requesterUserId") requesterUserId: UUID
-    ): ExtraServiceRequestResponseDTO =
-        extraServiceRequestService.getExtraService(serviceId, requesterUserId)
+    @PreAuthorize("hasAuthority('PRIV_EXTRA_SERVICE_READ')")
+    fun getExtraService(@PathVariable serviceId: UUID): ExtraServiceRequestResponseDTO =
+        extraServiceRequestService.getExtraService(serviceId)
 
     @GetMapping("/extra-services/{serviceId}/payment")
-    fun getExtraServicePayment(
-        @PathVariable serviceId: UUID,
-        @RequestParam("requesterUserId") requesterUserId: UUID
-    ): PaymentRequestView =
-        extraServiceRequestService.getExtraServicePayment(serviceId, requesterUserId)
+    @PreAuthorize("hasAuthority('PRIV_EXTRA_SERVICE_PAYMENT_READ')")
+    fun getExtraServicePayment(@PathVariable serviceId: UUID): PaymentRequestView =
+        extraServiceRequestService.getExtraServicePayment(serviceId)
 
     @PutMapping("/extra-services/{serviceId}")
+    @PreAuthorize("hasAuthority('PRIV_EXTRA_SERVICE_UPDATE')")
     fun updateExtraService(
         @PathVariable serviceId: UUID,
-        @RequestParam("requesterUserId") requesterUserId: UUID,
         @Valid @RequestBody dto: ExtraServiceRequestUpdateDTO
     ): ExtraServiceRequestResponseDTO =
-        extraServiceRequestService.updateExtraService(serviceId, requesterUserId, dto)
+        extraServiceRequestService.updateExtraService(serviceId, dto)
 
     @PostMapping("/extra-services/{serviceId}/decision")
+    @PreAuthorize("hasAuthority('PRIV_EXTRA_SERVICE_DECIDE')")
     fun decideExtraService(
         @PathVariable serviceId: UUID,
-        @RequestParam("requesterUserId") requesterUserId: UUID,
         @Valid @RequestBody request: ExtraServiceDecisionRequest
     ): ExtraServiceDecisionResponse =
-        extraServiceRequestService.decideExtraService(serviceId, requesterUserId, request)
+        extraServiceRequestService.decideExtraService(serviceId, request)
 
     @DeleteMapping("/extra-services/{serviceId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    fun deleteExtraService(
-        @PathVariable serviceId: UUID,
-        @RequestParam("requesterUserId") requesterUserId: UUID
-    ) {
-        extraServiceRequestService.deleteExtraService(serviceId, requesterUserId)
+    @PreAuthorize("hasAuthority('PRIV_EXTRA_SERVICE_DELETE')")
+    fun deleteExtraService(@PathVariable serviceId: UUID) {
+        extraServiceRequestService.deleteExtraService(serviceId)
     }
 }
