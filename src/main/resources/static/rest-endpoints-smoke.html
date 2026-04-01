@@ -283,12 +283,6 @@
 <main>
   <section class="panel highlight">
     <h1>BLPS Auth + Chat Console</h1>
-    <p class="intro">
-      Эта страница открывается без браузерного Basic prompt. Логин сверху выполняет
-      <code>HTTP Basic</code> запрос к <code>/auth/session</code>, сервер поднимает сессию,
-      и дальше REST plus WebSocket работают уже под этим authenticated principal. Для деплоя
-      по умолчанию выставлен <code>https://fixly-meow.ru:8443</code>.
-    </p>
   </section>
 
   <section class="auth-layout">
@@ -309,10 +303,6 @@
         <button id="btnLogin">Login</button>
         <button class="secondary" id="btnCheckSession">Check Session</button>
         <button class="ghost" id="btnLogout">Logout</button>
-      </div>
-      <div class="note">
-        Текущие тестовые аккаунты сохранены, но их пароли теперь лежат в XML в виде bcrypt-хешей.
-        Логин на этой странице все равно использует исходные raw-пароли.
       </div>
       <div class="auth-grid">
         <div class="card"><strong>Username</strong><span id="meUsername">-</span></div>
@@ -348,10 +338,6 @@
       </div>
       <div class="actions">
         <button id="btnRegister">Register</button>
-      </div>
-      <div class="note">
-        При регистрации создаются сразу две сущности: доменный пользователь в БД и
-        XML-учетка для Spring Security. Роль <code>ADMIN</code> через self-registration запрещена.
       </div>
     </section>
   </section>
